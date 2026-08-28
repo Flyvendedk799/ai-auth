@@ -7,6 +7,9 @@
  * bites slightly early, which is the safe failure.
  */
 
+import { pricingKeyFor } from './models.js';
+
+
 /**
  * A model name. A plain string rather than a union because the provider and model are now
  * chosen at runtime, so the set is not known at compile time.
@@ -76,12 +79,13 @@ export const PRICING: Record<string, ModelPricing> = {
 export const UNKNOWN_MODEL_PRICING: ModelPricing = { input: 15.0, output: 75.0 };
 
 export function pricingFor(model: ModelId): ModelPricing {
-  return PRICING[model] ?? UNKNOWN_MODEL_PRICING;
+  const key = pricingKeyFor(model);
+  return (key !== null ? PRICING[key] : undefined) ?? UNKNOWN_MODEL_PRICING;
 }
 
 /** True when the model is priced from the table rather than the pessimistic fallback. */
 export function isPricingKnown(model: ModelId): boolean {
-  return PRICING[model] !== undefined;
+  return pricingKeyFor(model) !== null;
 }
 
 /**

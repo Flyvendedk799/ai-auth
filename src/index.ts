@@ -88,6 +88,15 @@ export {
 } from './registry/pricing.js';
 
 export {
+  MODELS,
+  modelSpec,
+  modelsFor,
+  pricingKeyFor,
+  type ModelSpec,
+  type ModelTier,
+} from './registry/models.js';
+
+export {
   describeProviderError,
   providerErrorFacts,
   type DescribeOptions,
