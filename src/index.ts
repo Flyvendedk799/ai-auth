@@ -105,6 +105,12 @@ export {
 
 // --- Configuring an SDK client ----------------------------------------------
 export {
+  CLAUDE_CODE_SYSTEM,
+  withClaudeCodeIdentity,
+  type SystemBlock,
+} from './clients/identity.js';
+
+export {
   anthropicKeyOptions,
   anthropicSubscriptionOptions,
   CLAUDE_CODE_BETA,
