@@ -57,6 +57,15 @@ export interface ClaudeAccountStoreOptions {
   secret: string;
   /** Prefixes the store key, so several apps can share one table without colliding. */
   namespace?: string;
+  /**
+   * Overrides the label the encryption key is derived from.
+   *
+   * Only ever needed when adopting this library over credentials some earlier code already
+   * wrote: the label is part of the key, so changing it makes every stored value unreadable
+   * and silently signs every connected user out. Pass the label the previous code used and
+   * nothing has to be re-encrypted or re-authorised.
+   */
+  secretLabel?: string;
   fetchImpl?: typeof fetch;
   now?: () => number;
 }
@@ -77,7 +86,7 @@ export class ClaudeAccountStore {
   private readonly refreshing = new Map<string, Promise<string>>();
 
   constructor(private readonly options: ClaudeAccountStoreOptions) {
-    this.box = new SecretBox(options.secret, SECRET_LABEL);
+    this.box = new SecretBox(options.secret, options.secretLabel ?? SECRET_LABEL);
     this.prefix = options.namespace ? `${options.namespace}:claude:` : 'claude:';
     this.now = options.now ?? Date.now;
   }

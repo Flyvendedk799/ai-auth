@@ -169,3 +169,29 @@ describe('ClaudeAccountStore', () => {
     expect((await app.status('u1')).connected).toBe(true);
   });
 });
+
+describe('secretLabel', () => {
+  it('opens values written under a label some earlier code used', async () => {
+    // The migration path. The label is part of the derived key, so adopting this library over
+    // an existing deployment's credentials without it would make every one of them unreadable
+    // — which reads to the user as being silently signed out of a subscription they connected.
+    const store = new MemoryCredentialStore();
+    const legacy = new ClaudeAccountStore({
+      store,
+      secret: 'host-secret',
+      secretLabel: 'someapp-claude-oauth',
+    });
+    await legacy.save('u1', identity());
+
+    const adopted = new ClaudeAccountStore({
+      store,
+      secret: 'host-secret',
+      secretLabel: 'someapp-claude-oauth',
+    });
+    expect((await adopted.status('u1')).connected).toBe(true);
+
+    // And the default label is genuinely a different key, or the option would be decoration.
+    const wrong = new ClaudeAccountStore({ store, secret: 'host-secret' });
+    expect((await wrong.status('u1')).connected).toBe(false);
+  });
+});

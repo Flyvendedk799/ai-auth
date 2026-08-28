@@ -125,3 +125,27 @@ describe('ApiKeyStore', () => {
     expect(await one.stored('anthropic')).toBe('sk-ant-one');
   });
 });
+
+describe('ApiKeyStore secretLabel', () => {
+  it('opens keys written under a label some earlier code used', async () => {
+    const store = new MemoryCredentialStore();
+    const legacy = new ApiKeyStore({
+      store,
+      secret: 'host-secret',
+      secretLabel: 'someapp-settings',
+      env: {},
+    });
+    await legacy.set('anthropic', 'sk-ant-already-stored');
+
+    const adopted = new ApiKeyStore({
+      store,
+      secret: 'host-secret',
+      secretLabel: 'someapp-settings',
+      env: {},
+    });
+    expect(await adopted.stored('anthropic')).toBe('sk-ant-already-stored');
+
+    const wrong = new ApiKeyStore({ store, secret: 'host-secret', env: {} });
+    expect(await wrong.stored('anthropic')).toBeNull();
+  });
+});

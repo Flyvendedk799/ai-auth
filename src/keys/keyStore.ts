@@ -45,6 +45,14 @@ export interface ApiKeyStoreOptions {
   /** Prefixes the store key, so several apps can share one table without colliding. */
   namespace?: string;
   /**
+   * Overrides the label the encryption key is derived from.
+   *
+   * Only ever needed when adopting this library over keys some earlier code already wrote:
+   * the label is part of the key, so changing it makes every stored value unreadable. Pass
+   * the label the previous code used and nothing has to be re-entered.
+   */
+  secretLabel?: string;
+  /**
    * Where to look when nothing is stored. Defaults to `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`.
    * Pass `{}` to disable the environment fallback entirely.
    */
@@ -64,7 +72,7 @@ export class ApiKeyStore {
   private readonly envNames: { anthropic: string; openai: string };
 
   constructor(private readonly options: ApiKeyStoreOptions) {
-    this.box = new SecretBox(options.secret, SECRET_LABEL);
+    this.box = new SecretBox(options.secret, options.secretLabel ?? SECRET_LABEL);
     this.prefix = options.namespace ? `${options.namespace}:key:` : 'key:';
     this.env = options.env ?? process.env;
     this.envNames = {
