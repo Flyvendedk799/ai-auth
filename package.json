@@ -1,0 +1,40 @@
+{
+  "name": "@flyvendedk799/ai-auth",
+  "version": "0.1.0",
+  "description": "Bring-your-own-credential auth for Anthropic and OpenAI: Claude Code and Codex subscription logins, plus encrypted API keys. No runtime dependencies.",
+  "license": "MIT",
+  "type": "module",
+  "repository": { "type": "git", "url": "git+https://github.com/Flyvendedk799/ai-auth.git" },
+  "keywords": ["anthropic", "openai", "claude-code", "codex", "oauth", "pkce", "api-key", "byok"],
+  "engines": { "node": ">=20" },
+  "files": ["dist", "src", "README.md", "LICENSE"],
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./fastify": { "types": "./dist/fastify/index.d.ts", "default": "./dist/fastify/index.js" },
+    "./react": { "types": "./dist/react/index.d.ts", "default": "./dist/react/index.js" },
+    "./react/terminal.css": "./dist/react/terminal.css",
+    "./postgres": { "types": "./dist/store/postgres.d.ts", "default": "./dist/store/postgres.js" }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-assets.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "fastify": ">=4",
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "fastify": { "optional": true },
+    "react": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "fastify": "^5.2.0",
+    "react": "^18.3.1",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.9"
+  }
+}

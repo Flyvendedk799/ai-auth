@@ -1,0 +1,148 @@
+/**
+ * The terminal's own stylesheet.
+ *
+ * Every colour and size is a `var()` with a fallback declared in one place below, so this
+ * drops into an app that has its own design tokens and inherits them, and into an app that
+ * has none and still looks finished. Override any token from your own `:root`: the defaults
+ * are aliased here precisely so a host value wins.
+ *
+ * The palette is dark because a terminal is. That is the one opinion this file holds.
+ */
+
+.ai-auth-term {
+  --_font-mono: var(--font-mono, ui-monospace, 'JetBrains Mono', 'Cascadia Code', Consolas, monospace);
+  --_border: var(--border, #262c35);
+  --_text: var(--text, #e6e9ee);
+  --_muted: var(--muted, #8b949e);
+  --_accent: var(--accent, #6ee7b7);
+  --_ok: var(--ok, #4ade80);
+  --_pending: var(--pending, #fbbf24);
+  --_radius-sm: var(--radius-sm, 6px);
+  --_radius-md: var(--radius-md, 8px);
+  --_radius-pill: var(--radius-pill, 999px);
+  --_text-2xs: var(--text-2xs, 0.6875rem);
+  --_text-xs: var(--text-xs, 0.75rem);
+}
+
+.ai-auth-term {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 18rem;
+  overflow: hidden;
+  font-family: var(--_font-mono);
+  font-size: var(--_text-xs);
+  background: #0b0e12;
+  border: 1px solid var(--_border);
+  border-radius: var(--_radius-md);
+  cursor: text;
+}
+
+.ai-auth-term__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  background: #12161b;
+  border-bottom: 1px solid var(--_border);
+}
+
+.ai-auth-term__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--_radius-pill);
+  background: var(--_border);
+}
+
+.ai-auth-term__title {
+  margin-left: 0.35rem;
+  font-size: var(--_text-2xs);
+  color: var(--_muted);
+}
+
+.ai-auth-term__body {
+  padding: 0.6rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ai-auth-term__line {
+  margin: 0 0 0.2rem;
+  line-height: 1.5;
+  /* A URL and a pasted code are both long and neither may be truncated: one has to be read
+     and the other has to be copied. */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.ai-auth-term__line--command {
+  color: var(--_text);
+}
+
+.ai-auth-term__line--out {
+  color: var(--_muted);
+}
+
+.ai-auth-term__line--ok {
+  color: var(--_ok);
+}
+
+.ai-auth-term__line--warn {
+  color: var(--_pending);
+}
+
+.ai-auth-term__line--link a {
+  color: var(--_accent);
+}
+
+.ai-auth-term__prompt {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-top: 1px solid var(--_border);
+  background: #0d1116;
+}
+
+.ai-auth-term__sigil {
+  flex: none;
+  color: var(--_accent);
+}
+
+.ai-auth-term__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--_text);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.ai-auth-term__input::placeholder {
+  color: color-mix(in srgb, var(--_muted) 70%, transparent);
+}
+
+.ai-auth-term__input:disabled {
+  opacity: 0.5;
+}
+
+/* Sits on the link's line rather than under it: it is an alternative to clicking, not a
+   second step after it. */
+.ai-auth-term__copy {
+  margin-left: 0.5rem;
+  padding: 0 0.35rem;
+  font: inherit;
+  font-size: var(--_text-2xs);
+  color: var(--_muted);
+  background: none;
+  border: 1px solid var(--_border);
+  border-radius: var(--_radius-sm);
+  cursor: pointer;
+}
+
+.ai-auth-term__copy:hover {
+  color: var(--_text);
+  border-color: var(--_accent);
+  filter: none;
+}
