@@ -55,22 +55,37 @@ function cliFor(provider: ProviderId): string {
  * Null rather than a vague catch-all: "something went wrong" is worse than the status code
  * and the body, which at least give someone something to search for.
  */
+export interface DescribeOptions {
+  /**
+   * What your app calls the place these are changed — "Settings", "the admin page", "`.env`".
+   *
+   * Half of these messages end in an instruction, and an instruction that cannot say *where*
+   * is markedly less useful than one that can. A library cannot know the answer and guessing
+   * would send people looking for a page that does not exist, so the sentences are built
+   * without it unless you supply it.
+   */
+  configureAt?: string;
+}
+
 export function describeProviderError(
   error: unknown,
   provider: ProviderId,
   model: ModelId,
+  options: DescribeOptions = {},
 ): string | null {
   const status = statusOf(error);
   const detail = detailOf(error);
   const subscription = isSubscription(provider);
   const cli = cliFor(provider);
+  /** " in Settings", or nothing at all. */
+  const at = options.configureAt ? ` in ${options.configureAt}` : '';
 
   if (status === 429) {
     return subscription
       ? `Your ${provider === 'codex' ? 'ChatGPT' : 'Claude'} plan is rate-limited right now, so the ` +
           'call was refused before it started. A plan is shared by everything signed in to ' +
           `it — including the \`${cli}\` CLI — so another tool may be using the allowance. Wait a ` +
-          'few minutes, pick a lighter model, or switch to an API key.'
+          `few minutes, pick a lighter model, or switch to an API key${at}.`
       : 'The provider is rate-limiting this key. Wait a moment and try again, or slow down how ' +
           'many calls run at once.';
   }
@@ -79,18 +94,19 @@ export function describeProviderError(
     return subscription
       ? `The ${cli} login on the server was rejected. Run \`${cli}\` on that machine and sign in ` +
           'again, then try once more — there is nothing to paste anywhere.'
-      : 'The API key was rejected — a key that has been revoked or rotated fails exactly like this.';
+      : `The API key was rejected${at ? ` — check it${at}` : ''}. A key that has been ` +
+          'revoked or rotated fails exactly like this.';
   }
 
   if (status === 400 && detail) {
     // Almost always a model that does not accept something the request carried. Name the model,
     // because the setting that caused it is a free-text box and the message is about a
     // parameter the user never typed.
-    return `${detail} (model: ${model}). Choose a different model.`;
+    return `${detail} (model: ${model}). Choose a different model${at}.`;
   }
 
   if (status === 404) {
-    return `The provider does not know a model called \`${model}\`. Check the model name.`;
+    return `The provider does not know a model called \`${model}\`. Check the model name${at}.`;
   }
 
   if (status !== null && status >= 500) {

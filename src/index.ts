@@ -87,7 +87,7 @@ export {
   type TokenUsage,
 } from './registry/pricing.js';
 
-export { describeProviderError } from './registry/errors.js';
+export { describeProviderError, type DescribeOptions } from './registry/errors.js';
 
 // --- Configuring an SDK client ----------------------------------------------
 export {
