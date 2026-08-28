@@ -1,7 +1,7 @@
 {
   "name": "@flyvendedk799/ai-auth",
-  "version": "0.8.0",
-  "description": "Bring-your-own-credential auth for Anthropic and OpenAI: Claude Code and Codex subscription logins, plus encrypted API keys. No runtime dependencies.",
+  "version": "0.9.0",
+  "description": "Bring-your-own-credential auth for Anthropic and OpenAI: Claude Code and Codex subscription logins, plus encrypted API keys. No runtime dependencies. Carries the traps that cost a day each.",
   "license": "MIT",
   "type": "module",
   "repository": {

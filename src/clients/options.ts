@@ -64,6 +64,12 @@ export function anthropicKeyOptions(apiKey: string): AnthropicClientOptions {
  * back to `ANTHROPIC_API_KEY` from the environment, and a machine that has both a key and a
  * subscription would send the key alongside the bearer and 401 — on a box where everything
  * looks correctly configured, which is the worst place for this to happen.
+ *
+ * **These options are not sufficient on their own.** Every request made with them must also
+ * open with the Claude Code identity system block — see `withClaudeCodeIdentity`. Without it
+ * Anthropic refuses Opus and Sonnet with a 429 that names a rate limit the plan is nowhere
+ * near, while Haiku answers normally. A client built from here and used without the block
+ * works perfectly on the model you test with and fails on every model you want.
  */
 export function anthropicSubscriptionOptions(accessToken: string): AnthropicClientOptions {
   return {
