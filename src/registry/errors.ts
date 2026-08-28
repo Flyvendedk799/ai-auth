@@ -25,6 +25,60 @@ interface ProviderErrorLike {
   status?: number;
   message?: string;
   name?: string;
+  /** A `Headers`, or a plain object. Both SDKs attach the response headers; shapes differ. */
+  headers?: unknown;
+}
+
+/**
+ * What the provider actually told us, kept separate from what we choose to say about it.
+ *
+ * Worth its own type because the interesting facts arrive in *headers*, and they were being
+ * thrown away. A 429 carrying `retry-after: 4` from a plan reporting 19% utilisation is a
+ * burst throttle that clears in seconds. A 429 from a plan reporting `rejected` is an
+ * exhausted allowance. Those are opposite problems with opposite remedies, they are
+ * distinguishable from the response itself, and announcing the second when it was the first
+ * sends someone off to buy credits they did not need.
+ */
+export interface ProviderErrorFacts {
+  status: number | null;
+  /** Seconds, from `retry-after`. */
+  retryAfter: number | null;
+  /**
+   * Anthropic's own verdict on the plan: `allowed`, `rejected`, … Absent for OpenAI, and
+   * absent for anything that never reached Anthropic — an intermediary's 429 carries no such
+   * header, which is itself the tell.
+   */
+  planStatus: string | null;
+  /** 0–1: how much of the representative window is spent. */
+  utilization: number | null;
+  /** The provider's own sentence, when it bothered to send one. */
+  detail: string | null;
+}
+
+function headerOf(error: unknown, name: string): string | null {
+  const headers = (error as ProviderErrorLike | null)?.headers;
+  if (!headers) return null;
+  if (typeof (headers as Headers).get === 'function') return (headers as Headers).get(name);
+  const record = headers as Record<string, unknown>;
+  const hit = record[name] ?? record[name.toLowerCase()];
+  return typeof hit === 'string' ? hit : null;
+}
+
+function numberFrom(raw: string | null): number | null {
+  if (raw === null) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
+/** Everything the response told us — for logging, and for storing beside a failure. */
+export function providerErrorFacts(error: unknown): ProviderErrorFacts {
+  return {
+    status: statusOf(error),
+    retryAfter: numberFrom(headerOf(error, 'retry-after')),
+    planStatus: headerOf(error, 'anthropic-ratelimit-unified-status'),
+    utilization: numberFrom(headerOf(error, 'anthropic-ratelimit-unified-5h-utilization')),
+    detail: detailOf(error),
+  };
 }
 
 function statusOf(error: unknown): number | null {
@@ -81,13 +135,40 @@ export function describeProviderError(
   const at = options.configureAt ? ` in ${options.configureAt}` : '';
 
   if (status === 429) {
-    return subscription
-      ? `Your ${provider === 'codex' ? 'ChatGPT' : 'Claude'} plan is rate-limited right now, so the ` +
-          'call was refused before it started. A plan is shared by everything signed in to ' +
-          `it — including the \`${cli}\` CLI — so another tool may be using the allowance. Wait a ` +
-          `few minutes, pick a lighter model, or switch to an API key${at}.`
-      : 'The provider is rate-limiting this key. Wait a moment and try again, or slow down how ' +
-          'many calls run at once.';
+    const facts = providerErrorFacts(error);
+    const wait = facts.retryAfter !== null ? ` It asked us to wait ${facts.retryAfter} seconds.` : '';
+
+    // The plan says it is fine. Then this is a burst throttle, or something sitting between us
+    // and the provider — and telling someone their allowance is gone would be a plain untruth
+    // they could lose an afternoon acting on. This branch exists because that happened.
+    if (facts.planStatus !== null && facts.planStatus !== 'rejected') {
+      const used =
+        facts.utilization !== null
+          ? ` The plan reports ${Math.round(facts.utilization * 100)}% of its window used, so the allowance is not the problem.`
+          : ' The plan itself reports as available, so the allowance is not the problem.';
+      return (
+        'The provider refused the call with a rate limit, but says the plan is still allowed.' +
+        used +
+        wait +
+        ' That usually means too many calls at once, or something between this server and the provider.'
+      );
+    }
+
+    if (subscription) {
+      return (
+        `Your ${provider === 'codex' ? 'ChatGPT' : 'Claude'} plan is rate-limited right now, so the ` +
+        'call was refused before it started. A plan is shared by everything signed in to ' +
+        `it — including the \`${cli}\` CLI — so another tool may be using the allowance.` +
+        wait +
+        ` Wait a few minutes, pick a lighter model, or switch to an API key${at}.`
+      );
+    }
+
+    return (
+      'The provider is rate-limiting this key.' +
+      wait +
+      ' Wait a moment and try again, or slow down how many calls run at once.'
+    );
   }
 
   if (status === 401 || status === 403) {
