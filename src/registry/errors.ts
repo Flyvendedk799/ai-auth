@@ -138,29 +138,36 @@ export function describeProviderError(
     const facts = providerErrorFacts(error);
     const wait = facts.retryAfter !== null ? ` It asked us to wait ${facts.retryAfter} seconds.` : '';
 
-    // The plan says it is fine. Then this is a burst throttle, or something sitting between us
-    // and the provider — and telling someone their allowance is gone would be a plain untruth
-    // they could lose an afternoon acting on. This branch exists because that happened.
+    // The plan says it is fine. Then this is a burst throttle, a per-model limit, or something
+    // sitting between us and the provider — and telling someone their allowance is gone would
+    // be a plain untruth they could lose an afternoon acting on.
     if (facts.planStatus !== null && facts.planStatus !== 'rejected') {
       const used =
         facts.utilization !== null
-          ? ` The plan reports ${Math.round(facts.utilization * 100)}% of its window used, so the allowance is not the problem.`
-          : ' The plan itself reports as available, so the allowance is not the problem.';
+          ? ` The plan reports ${Math.round(facts.utilization * 100)}% of its overall window used, so the overall allowance is not the problem.`
+          : ' The plan itself reports as available, so the overall allowance is not the problem.';
       return (
         'The provider refused the call with a rate limit, but says the plan is still allowed.' +
         used +
         wait +
-        ' That usually means too many calls at once, or something between this server and the provider.'
+        ` A subscription limits each model separately, so \`${model}\` may be exhausted while a` +
+        ' lighter one still answers. Try a lighter model, or fewer calls at once.'
       );
     }
 
     if (subscription) {
+      // Per-model first, because it is both the commonest cause and the one with a remedy
+      // that works immediately. A plan limits Opus, Sonnet and Haiku on separate allowances:
+      // the heavy model can be refused for hours while the light one answers every time, and
+      // "your plan is rate-limited" sends people off to wait when they could have switched
+      // model and carried on. Learned from a deployment where exactly that happened.
       return (
-        `Your ${provider === 'codex' ? 'ChatGPT' : 'Claude'} plan is rate-limited right now, so the ` +
-        'call was refused before it started. A plan is shared by everything signed in to ' +
-        `it — including the \`${cli}\` CLI — so another tool may be using the allowance.` +
+        `Your ${provider === 'codex' ? 'ChatGPT' : 'Claude'} plan refused this call for \`${model}\`. ` +
+        'A plan limits each model separately, so a heavier model can be exhausted while a ' +
+        'lighter one still works — switching model is usually the fastest fix. The allowance ' +
+        `is also shared with everything signed in to the plan, the \`${cli}\` CLI included.` +
         wait +
-        ` Wait a few minutes, pick a lighter model, or switch to an API key${at}.`
+        ` Pick a lighter model, wait for the window to reset, or switch to an API key${at}.`
       );
     }
 

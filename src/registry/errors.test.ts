@@ -10,7 +10,8 @@ describe('describeProviderError', () => {
 
     // The same status with different remedies. One "rate limited" would send half the people
     // who saw it to the wrong fix.
-    expect(plan).toMatch(/plan is rate-limited/);
+    expect(plan).toMatch(/plan refused this call for `claude-opus-5`/);
+    expect(plan).toMatch(/limits each model separately/);
     expect(plan).toMatch(/`claude` CLI/);
     expect(key).toMatch(/rate-limiting this key/);
     expect(key).not.toMatch(/plan/);
@@ -77,10 +78,10 @@ describe('a 429 is not automatically an exhausted plan', () => {
     )!;
 
     expect(message).toMatch(/says the plan is still allowed/);
-    expect(message).toMatch(/19% of its window used/);
+    expect(message).toMatch(/19% of its overall window used/);
     expect(message).toMatch(/wait 4 seconds/);
     // The thing it must never say here.
-    expect(message).not.toMatch(/plan is rate-limited/);
+    expect(message).not.toMatch(/plan refused this call/);
   });
 
   it('still blames the plan when the plan is the one refusing', () => {
@@ -89,7 +90,7 @@ describe('a 429 is not automatically an exhausted plan', () => {
       'claude-code',
       'claude-opus-5',
     )!;
-    expect(message).toMatch(/plan is rate-limited/);
+    expect(message).toMatch(/plan refused this call/);
     expect(message).toMatch(/wait 900 seconds/);
   });
 
@@ -97,7 +98,7 @@ describe('a 429 is not automatically an exhausted plan', () => {
     // No header is not evidence of innocence — an old SDK, or an error we synthesised, gets
     // the conservative reading rather than the reassuring one.
     expect(describeProviderError({ status: 429 }, 'claude-code', 'claude-opus-5')).toMatch(
-      /plan is rate-limited/,
+      /plan refused this call/,
     );
   });
 
@@ -138,5 +139,34 @@ describe('providerErrorFacts', () => {
       utilization: null,
       detail: null,
     });
+  });
+});
+
+describe('a subscription limits each model separately', () => {
+  it('names the model that was refused, and says a lighter one may still work', () => {
+    // The production case this was written for. The plan sat at 19% of its overall window and
+    // answered Haiku with a 200 in the same second it refused Sonnet with a 429 — so "your
+    // plan is rate-limited" was both true and useless, and sent the reader off to wait out an
+    // allowance that was never the thing standing in the way.
+    const message = describeProviderError({ status: 429 }, 'claude-code', 'claude-sonnet-5')!;
+
+    expect(message).toMatch(/refused this call for `claude-sonnet-5`/);
+    expect(message).toMatch(/limits each model separately/);
+    expect(message).toMatch(/switching model is usually the fastest fix/);
+  });
+
+  it('names the model in the allowed-but-refused branch too', () => {
+    const message = describeProviderError(
+      withHeaders(429, { 'anthropic-ratelimit-unified-status': 'allowed' }),
+      'claude-code',
+      'claude-opus-5',
+    )!;
+    expect(message).toMatch(/`claude-opus-5` may be exhausted while a lighter one still answers/);
+  });
+
+  it('says nothing about models for a metered key, which has no per-model plan', () => {
+    const message = describeProviderError({ status: 429 }, 'anthropic', 'claude-sonnet-5')!;
+    expect(message).toMatch(/rate-limiting this key/);
+    expect(message).not.toMatch(/each model separately/);
   });
 });
