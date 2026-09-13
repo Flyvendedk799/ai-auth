@@ -57,19 +57,23 @@ export interface ApiKeyStoreOptions {
    * Pass `{}` to disable the environment fallback entirely.
    */
   env?: Record<string, string | undefined>;
-  envNames?: { anthropic?: string; openai?: string };
+  envNames?: { anthropic?: string; openai?: string; gemini?: string };
 }
 
-const DEFAULT_ENV_NAMES = { anthropic: 'ANTHROPIC_API_KEY', openai: 'OPENAI_API_KEY' } as const;
+const DEFAULT_ENV_NAMES = {
+  anthropic: 'ANTHROPIC_API_KEY',
+  openai: 'OPENAI_API_KEY',
+  gemini: 'GEMINI_API_KEY',
+} as const;
 
 /** Which wire a provider's key belongs to. Claude Code borrows nothing from an Anthropic key. */
-type Wire = 'anthropic' | 'openai';
+type Wire = 'anthropic' | 'openai' | 'gemini';
 
 export class ApiKeyStore {
   private readonly box: SecretBox;
   private readonly prefix: string;
   private readonly env: Record<string, string | undefined>;
-  private readonly envNames: { anthropic: string; openai: string };
+  private readonly envNames: { anthropic: string; openai: string; gemini: string };
 
   constructor(private readonly options: ApiKeyStoreOptions) {
     this.box = new SecretBox(options.secret, options.secretLabel ?? SECRET_LABEL);
@@ -78,6 +82,7 @@ export class ApiKeyStore {
     this.envNames = {
       anthropic: options.envNames?.anthropic ?? DEFAULT_ENV_NAMES.anthropic,
       openai: options.envNames?.openai ?? DEFAULT_ENV_NAMES.openai,
+      gemini: options.envNames?.gemini ?? DEFAULT_ENV_NAMES.gemini,
     };
   }
 

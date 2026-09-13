@@ -1,11 +1,11 @@
 # ai-auth
 
-Bring-your-own-credential auth for Anthropic and OpenAI.
+Bring-your-own-credential auth for Anthropic, OpenAI, and Google Gemini.
 
 Three ways to pay for a model call, behind one small set of pieces:
 
-- **A Claude subscription the user signs in to, in your app.** OAuth with PKCE, the same flow `claude` runs, driven from a browser. Each account brings its own plan, so a call costs the person who asked for it rather than whoever set the server up.
-- **A subscription already signed in on the machine.** If `claude` or `codex` is logged in on the box, the credential is already there. Read it, use it, never disturb it.
+- **A subscription the user signs in to, in your app.** OAuth with PKCE, the same flow `claude` and `gemini` run. Each account brings its own plan, so a call costs the person who asked for it rather than whoever set the server up.
+- **A subscription already signed in on the machine.** If `claude`, `codex`, or `gemini` is logged in on the box, the credential is already there. Read it, use it, never disturb it.
 - **An ordinary API key.** Encrypted at rest, resolved from storage or the environment, masked for display and never readable back out.
 
 No runtime dependencies. Node built-ins only. Fastify and React are optional peers behind their own entry points, and neither SDK is a dependency at all.
@@ -113,13 +113,19 @@ if ((await claude.status()).connected) {
 }
 
 const openai = new OpenAI(codexOptions(await new CodexCredential().identity()));
+
+const gemini = new GeminiCliCredential();
+if ((await gemini.status()).connected) {
+  const options = geminiCliOptions(await gemini.identity());
+  // options.defaultHeaders carries Authorization: Bearer <token> and x-goog-user-project
+}
 ```
 
 Two rules hold throughout, and both are the opposite of what you would guess:
 
 **Re-read, do not own.** The file belongs to the CLI. Every call re-reads it, so a sign-in, sign-out or re-auth is picked up without restarting anything.
 
-**Refresh only when it is already dead.** These providers rotate the refresh token on exchange, so a refresh performed here would leave the *user's own CLI* holding a credential your server has already spent. Claude refreshes only once the token has genuinely expired, and keeps the result in memory. Codex never refreshes: its CLI keeps its own token current, and the answer to an expired one is "run `codex`", which costs the user nothing.
+**Refresh only when it is already dead.** These providers rotate the refresh token on exchange, so a refresh performed here would leave the *user's own CLI* holding a credential your server has already spent. Claude and Gemini refresh only once the token has genuinely expired, and keep the result in memory. Codex never refreshes: its CLI keeps its own token current, and the answer to an expired one is "run `codex`", which costs the user nothing.
 
 ---
 
@@ -226,13 +232,21 @@ Because that is whose client id this flow uses. Tell your users, and read Anthro
 
 Every OAuth constant here was read out of the installed CLIs rather than guessed, because a wrong endpoint fails as an opaque HTML page rather than as an error.
 
+### 8. Gemini CLI calls Cloud Code, not generativelanguage.googleapis.com
+
+Gemini CLI's personal Google login (1,000 free requests/day and Google One AI credits) does not bill against the public Gemini API endpoint (`generativelanguage.googleapis.com`). Instead, it routes to Google's internal Cloud Code endpoint (`https://cloudcode-pa.googleapis.com/v1internal:generateContent`), wrapping requests in `{ model, request: { contents: [...] } }`. Calling `generativelanguage` with an OAuth bearer without a GCP quota project fails. `geminiCliOptions` and `toCodeAssistRequest` format this wire for you.
+
+### 9. Google deprecated out-of-band (OOB) OAuth
+
+Anthropic's OAuth allows displaying an authorization code for the user to copy and paste back into a server shell (`code: 'true'`). Google permanently deprecated OOB flows for OAuth 2.0. With Gemini CLI's public client credentials, authorization must redirect to a localhost callback (`http://localhost`).
+
 ---
 
 ## Development
 
 ```
 npm install
-npm test        # 153 tests, no network
+npm test        # 191 tests, no network
 npm run build
 ```
 

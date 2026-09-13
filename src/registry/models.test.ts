@@ -6,9 +6,11 @@ describe('modelsFor', () => {
   it('offers only models that speak the provider\'s wire', () => {
     expect(modelsFor('anthropic').every((m) => m.wire === 'anthropic')).toBe(true);
     expect(modelsFor('openai').every((m) => m.wire === 'openai')).toBe(true);
+    expect(modelsFor('gemini').every((m) => m.wire === 'gemini')).toBe(true);
     // A subscription speaks the same wire as its metered sibling, so it gets the same list.
     expect(modelsFor('claude-code').map((m) => m.id)).toEqual(modelsFor('anthropic').map((m) => m.id));
     expect(modelsFor('codex').map((m) => m.id)).toEqual(modelsFor('openai').map((m) => m.id));
+    expect(modelsFor('gemini-cli').map((m) => m.id)).toEqual(modelsFor('gemini').map((m) => m.id));
   });
 
   it('puts the lightest first, because that is what a rate-limited plan needs', () => {

@@ -24,7 +24,7 @@ export interface ModelSpec {
   id: ModelId;
   /** For a chooser. The vendor's own name for it, not the wire id. */
   label: string;
-  wire: 'anthropic' | 'openai';
+  wire: 'anthropic' | 'openai' | 'gemini';
   tier: ModelTier;
   /** One line on when to reach for it. */
   note: string;
@@ -79,6 +79,34 @@ export const MODELS: readonly ModelSpec[] = [
     wire: 'openai',
     tier: 'balanced',
     note: 'Previous generation, still solid.',
+  },
+  {
+    id: 'gemini-2.5-flash',
+    label: 'Gemini 2.5 Flash',
+    wire: 'gemini',
+    tier: 'light',
+    note: 'Fastest, large context, lightweight workhorse.',
+  },
+  {
+    id: 'gemini-2.5-pro',
+    label: 'Gemini 2.5 Pro',
+    wire: 'gemini',
+    tier: 'balanced',
+    note: 'Complex reasoning, coding, and large-context synthesis.',
+  },
+  {
+    id: 'gemini-3-flash',
+    label: 'Gemini 3 Flash',
+    wire: 'gemini',
+    tier: 'light',
+    note: 'Next-gen fast reasoning model.',
+  },
+  {
+    id: 'gemini-3-pro',
+    label: 'Gemini 3 Pro',
+    wire: 'gemini',
+    tier: 'heavy',
+    note: 'Next-gen flagship reasoning model.',
   },
 ];
 

@@ -14,6 +14,7 @@
  */
 
 import type { CodexIdentity } from '../codex/localCli.js';
+import type { GeminiIdentity } from '../gemini/localCli.js';
 
 /**
  * The Claude Code client version this presents as.
@@ -34,6 +35,12 @@ export const CLAUDE_CODE_BETA = [
 /** Codex speaks the OpenAI Responses API at its own host, not at `api.openai.com`. */
 export const CODEX_BASE_URL = 'https://chatgpt.com/backend-api/codex';
 
+/** Gemini CLI speaks Google's internal Cloud Code API for subscription calls. */
+export const GEMINI_CODE_ASSIST_BASE_URL = 'https://cloudcode-pa.googleapis.com/v1internal';
+
+/** Standard Google AI Studio API base URL for metered API keys. */
+export const GEMINI_STUDIO_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+
 export interface AnthropicClientOptions {
   apiKey: string | null;
   authToken?: string;
@@ -44,6 +51,14 @@ export interface OpenAiClientOptions {
   apiKey: string;
   baseURL?: string;
   defaultHeaders?: Record<string, string>;
+}
+
+export interface GeminiClientOptions {
+  apiKey?: string;
+  authToken?: string;
+  baseURL?: string;
+  defaultHeaders?: Record<string, string>;
+  projectId?: string;
 }
 
 /** A metered Anthropic API key. Nothing surprising; here for symmetry with the other three. */
@@ -105,3 +120,79 @@ export function codexOptions(identity: CodexIdentity, baseUrl = CODEX_BASE_URL):
     },
   };
 }
+
+/** A metered Google AI Studio API key. */
+export function geminiKeyOptions(apiKey: string, baseUrl = GEMINI_STUDIO_BASE_URL): GeminiClientOptions {
+  return {
+    apiKey,
+    baseURL: baseUrl,
+  };
+}
+
+/**
+ * Gemini CLI, on a Google account subscription (Code Assist, personal free tier, G1 credits).
+ *
+ * Directs calls to Google's internal Cloud Code endpoint (`https://cloudcode-pa.googleapis.com/v1internal`).
+ */
+export function geminiCliOptions(
+  identity: GeminiIdentity,
+  baseUrl = GEMINI_CODE_ASSIST_BASE_URL,
+): GeminiClientOptions {
+  return {
+    authToken: identity.accessToken,
+    baseURL: baseUrl,
+    projectId: identity.projectId ?? undefined,
+    defaultHeaders: {
+      Authorization: `Bearer ${identity.accessToken}`,
+      'Content-Type': 'application/json',
+      ...(identity.projectId ? { 'x-goog-user-project': identity.projectId } : {}),
+    },
+  };
+}
+
+export interface CodeAssistContentPart {
+  text?: string;
+  inlineData?: { mimeType: string; data: string };
+}
+
+export interface CodeAssistContent {
+  role?: 'user' | 'model' | 'system';
+  parts: CodeAssistContentPart[];
+}
+
+export interface CodeAssistGenerateRequest {
+  model: string;
+  project?: string;
+  user_prompt_id?: string;
+  request: {
+    contents: CodeAssistContent[];
+    systemInstruction?: CodeAssistContent;
+  };
+}
+
+/**
+ * Format a generation payload for the internal Cloud Code / Code Assist endpoint.
+ */
+export function toCodeAssistRequest(
+  model: string,
+  contents: CodeAssistContent[] | string,
+  options: { projectId?: string; systemInstruction?: string; userPromptId?: string } = {},
+): CodeAssistGenerateRequest {
+  const normalizedContents: CodeAssistContent[] =
+    typeof contents === 'string'
+      ? [{ role: 'user', parts: [{ text: contents }] }]
+      : contents;
+
+  return {
+    model: model.startsWith('models/') ? model : `models/${model}`,
+    ...(options.projectId ? { project: options.projectId } : {}),
+    ...(options.userPromptId ? { user_prompt_id: options.userPromptId } : {}),
+    request: {
+      contents: normalizedContents,
+      ...(options.systemInstruction
+        ? { systemInstruction: { role: 'system', parts: [{ text: options.systemInstruction }] } }
+        : {}),
+    },
+  };
+}
+
