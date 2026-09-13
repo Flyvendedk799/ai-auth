@@ -27,7 +27,7 @@ export type ModelId = string;
  * guard has nothing to guard. Modelling them as a *provider* rather than as a flag on one is
  * what keeps that distinction in one place instead of in every call site.
  */
-export type ProviderId = 'anthropic' | 'openai' | 'claude-code' | 'codex';
+export type ProviderId = 'anthropic' | 'openai' | 'claude-code' | 'codex' | 'gemini' | 'gemini-cli';
 
 /**
  * Providers billed to a plan rather than by the token.
@@ -36,14 +36,15 @@ export type ProviderId = 'anthropic' | 'openai' | 'claude-code' | 'codex';
  * this *deployment* nothing, and the ledger exists to protect the deployment's card. Charging
  * a subscription call the API rate would make the budget guard refuse work that is free to it.
  */
-export const SUBSCRIPTION_PROVIDERS: readonly ProviderId[] = ['claude-code', 'codex'];
+export const SUBSCRIPTION_PROVIDERS: readonly ProviderId[] = ['claude-code', 'codex', 'gemini-cli'];
 
 export function isSubscription(provider: ProviderId): boolean {
   return SUBSCRIPTION_PROVIDERS.includes(provider);
 }
 
 /** The wire a provider speaks, which is not the same question as who bills for it. */
-export function wireOf(provider: ProviderId): 'anthropic' | 'openai' {
+export function wireOf(provider: ProviderId): 'anthropic' | 'openai' | 'gemini' {
+  if (provider === 'gemini' || provider === 'gemini-cli') return 'gemini';
   return provider === 'anthropic' || provider === 'claude-code' ? 'anthropic' : 'openai';
 }
 
@@ -66,6 +67,11 @@ export const PRICING: Record<string, ModelPricing> = {
   'gpt-4.1': { input: 2.0, output: 8.0 },
   'gpt-4.1-mini': { input: 0.4, output: 1.6 },
   'o4-mini': { input: 1.1, output: 4.4 },
+
+  'gemini-2.5-flash': { input: 0.15, output: 0.6 },
+  'gemini-2.5-pro': { input: 1.25, output: 5.0 },
+  'gemini-3-flash': { input: 0.15, output: 0.6 },
+  'gemini-3-pro': { input: 1.25, output: 5.0 },
 };
 
 /**
@@ -97,7 +103,9 @@ export function isPricingKnown(model: ModelId): boolean {
  * recomputed, while an unknown row is better over-counted than under-counted.
  */
 export function providerOf(model: ModelId): ProviderId {
-  return model.startsWith('claude') ? 'anthropic' : 'openai';
+  if (model.startsWith('claude')) return 'anthropic';
+  if (model.startsWith('gemini')) return 'gemini';
+  return 'openai';
 }
 
 /** Cache writes cost more than fresh input; cache reads cost a fraction of it. */

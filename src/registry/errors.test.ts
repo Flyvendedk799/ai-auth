@@ -20,6 +20,7 @@ describe('describeProviderError', () => {
   it('names the CLI that owns a rejected subscription login', () => {
     expect(describeProviderError(err(401), 'codex', 'gpt-5')).toMatch(/run `codex`/i);
     expect(describeProviderError(err(403), 'claude-code', 'claude-opus-5')).toMatch(/run `claude`/i);
+    expect(describeProviderError(err(401), 'gemini-cli', 'gemini-2.5-pro')).toMatch(/run `gemini`/i);
   });
 
   it('says where to change things only when it has been told', () => {

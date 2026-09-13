@@ -59,6 +59,20 @@ describe('ApiKeyStore', () => {
       source: 'subscription',
       ready: true,
     });
+    expect(await keys.resolve('gemini-cli')).toEqual({
+      key: null,
+      source: 'subscription',
+      ready: true,
+    });
+  });
+
+  it('resolves gemini from GEMINI_API_KEY environment fallback', async () => {
+    const { keys } = makeStore({ GEMINI_API_KEY: 'gemini-key-123' });
+    expect(await keys.resolve('gemini')).toEqual({
+      key: 'gemini-key-123',
+      source: 'environment',
+      ready: true,
+    });
   });
 
   it('reports not-ready when a metered provider has nothing anywhere', async () => {
