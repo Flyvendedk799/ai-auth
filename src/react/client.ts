@@ -72,3 +72,56 @@ export async function disconnectClaude(): Promise<ClaudeConnection> {
   if (!response.ok) throw new Error(await describe(response));
   return (await response.json()) as ClaudeConnection;
 }
+export interface AntigravityConnection {
+  connected: boolean;
+  plan: string | null;
+  projectId: string | null;
+  expiresAt: number | null;
+  expired: boolean;
+  available: boolean;
+}
+
+export let antigravityApiPrefix = '/api/antigravity';
+
+export function setAntigravityApiPrefix(prefix: string): void {
+  antigravityApiPrefix = prefix.replace(/\/$/, '');
+}
+
+async function callAg(method: string, path: string, body?: unknown): Promise<Response> {
+  return fetch(`${antigravityApiPrefix}${path}`, {
+    method,
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+}
+
+export async function antigravityStatus(): Promise<AntigravityConnection> {
+  const response = await callAg('GET', '');
+  if (!response.ok) throw new Error(await describe(response));
+  return (await response.json()) as AntigravityConnection;
+}
+
+export async function startAntigravityLogin(): Promise<{ url: string; expiresInSeconds: number }> {
+  const response = await callAg('POST', '/login');
+  if (!response.ok) throw new Error(await describe(response));
+  return (await response.json()) as { url: string; expiresInSeconds: number };
+}
+
+export async function completeAntigravityLogin(code: string): Promise<AntigravityConnection> {
+  const response = await callAg('POST', '/login/complete', { code });
+  if (!response.ok) throw new Error(await describe(response));
+  return { ...((await response.json()) as AntigravityConnection), available: true };
+}
+
+export async function disconnectAntigravity(): Promise<AntigravityConnection> {
+  const response = await callAg('DELETE', '');
+  if (!response.ok) throw new Error(await describe(response));
+  return (await response.json()) as AntigravityConnection;
+}
+
+export async function setAntigravityProject(projectId: string | null): Promise<AntigravityConnection> {
+  const response = await callAg('PUT', '', { projectId });
+  if (!response.ok) throw new Error(await describe(response));
+  return (await response.json()) as AntigravityConnection;
+}

@@ -3,10 +3,10 @@ import {
   anthropicKeyOptions,
   anthropicSubscriptionOptions,
   codexOptions,
-  geminiCliOptions,
-  geminiKeyOptions,
-  GEMINI_CODE_ASSIST_BASE_URL,
-  GEMINI_STUDIO_BASE_URL,
+  antigravityCliOptions,
+  antigravityKeyOptions,
+  antigravity_CODE_ASSIST_BASE_URL,
+  antigravity_STUDIO_BASE_URL,
   openAiKeyOptions,
   toCodeAssistRequest,
 } from './options.js';
@@ -37,14 +37,14 @@ describe('client options', () => {
     expect(codex.defaultHeaders?.['chatgpt-account-id']).toBe('acc-123');
   });
 
-  it('generates correct geminiKeyOptions', () => {
-    const opts = geminiKeyOptions('gemini-api-key');
-    expect(opts.apiKey).toBe('gemini-api-key');
-    expect(opts.baseURL).toBe(GEMINI_STUDIO_BASE_URL);
+  it('generates correct antigravityKeyOptions', () => {
+    const opts = antigravityKeyOptions('antigravity-api-key');
+    expect(opts.apiKey).toBe('antigravity-api-key');
+    expect(opts.baseURL).toBe(antigravity_STUDIO_BASE_URL);
   });
 
-  it('generates correct geminiCliOptions', () => {
-    const opts = geminiCliOptions({
+  it('generates correct antigravityCliOptions', () => {
+    const opts = antigravityCliOptions({
       accessToken: 'ya29.test',
       refreshToken: null,
       expiresAt: 12345,
@@ -53,22 +53,22 @@ describe('client options', () => {
     });
 
     expect(opts.authToken).toBe('ya29.test');
-    expect(opts.baseURL).toBe(GEMINI_CODE_ASSIST_BASE_URL);
+    expect(opts.baseURL).toBe(antigravity_CODE_ASSIST_BASE_URL);
     expect(opts.defaultHeaders?.Authorization).toBe('Bearer ya29.test');
     expect(opts.defaultHeaders?.['x-goog-user-project']).toBe('proj-456');
   });
 
   it('builds Code Assist generation payload correctly with toCodeAssistRequest', () => {
-    const stringReq = toCodeAssistRequest('gemini-2.5-flash', 'Hello world');
+    const stringReq = toCodeAssistRequest('antigravity-2.5-flash', 'Hello world');
     expect(stringReq).toEqual({
-      model: 'models/gemini-2.5-flash',
+      model: 'models/antigravity-2.5-flash',
       request: {
         contents: [{ role: 'user', parts: [{ text: 'Hello world' }] }],
       },
     });
 
     const structuredReq = toCodeAssistRequest(
-      'models/gemini-2.5-pro',
+      'models/antigravity-2.5-pro',
       [{ role: 'user', parts: [{ text: 'Explain gravity' }] }],
       {
         projectId: 'gcp-project',
@@ -77,7 +77,7 @@ describe('client options', () => {
       },
     );
 
-    expect(structuredReq.model).toBe('models/gemini-2.5-pro');
+    expect(structuredReq.model).toBe('models/antigravity-2.5-pro');
     expect(structuredReq.project).toBe('gcp-project');
     expect(structuredReq.user_prompt_id).toBe('prompt-1');
     expect(structuredReq.request.systemInstruction).toEqual({
