@@ -187,11 +187,12 @@ export function describeProviderError(
   }
 
   if (status === 401 || status === 403) {
+    const detailString = detail ? ` (The provider said: ${detail})` : '';
     return subscription
       ? `The ${cli} login on the server was rejected. Run \`${cli}\` on that machine and sign in ` +
-          'again, then try once more — there is nothing to paste anywhere.'
+          `again, then try once more — there is nothing to paste anywhere.${detailString}`
       : `The API key was rejected${at ? ` — check it${at}` : ''}. A key that has been ` +
-          'revoked or rotated fails exactly like this.';
+          `revoked or rotated fails exactly like this.${detailString}`;
   }
 
   if (status === 400 && detail) {
