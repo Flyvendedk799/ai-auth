@@ -199,3 +199,144 @@ export function claudeAuthRoutes(options: ClaudeAuthRoutesOptions): FastifyPlugi
     });
   };
 }
+
+import type { AntigravityAccountStore } from '../antigravity/accountStore.js';
+import {
+  AntigravityLoginError,
+  exchangeAntigravityCode,
+  startAntigravityLogin,
+} from '../antigravity/oauth.js';
+
+export interface AntigravityAuthRoutesOptions {
+  resolveAccount: (
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) => Promise<ClaudeAuthAccount | null> | ClaudeAuthAccount | null;
+  store: AntigravityAccountStore | null;
+  prefix?: string;
+  now?: () => number;
+}
+
+export function antigravityAuthRoutes(options: AntigravityAuthRoutesOptions): FastifyPluginAsync {
+  const now = options.now ?? Date.now;
+  const prefix = options.prefix ?? '/api/antigravity';
+  const pending = new Map<string, Pending>();
+
+  const sweep = () => {
+    const at = now();
+    for (const [key, entry] of pending) if (entry.expiresAt <= at) pending.delete(key);
+  };
+
+  return async (app) => {
+    app.post(`${prefix}/login`, async (request, reply) => {
+      const account = await options.resolveAccount(request, reply);
+      if (!account) return;
+      if (!options.store) {
+        return reply.code(503).send({
+          error: 'no_store',
+          message: 'Connecting a subscription needs a credential store, and none is configured.',
+        });
+      }
+
+      sweep();
+      const started = startAntigravityLogin();
+      pending.set(account.id, {
+        verifier: started.verifier,
+        state: started.state,
+        expiresAt: now() + PENDING_TTL_MS,
+      });
+
+      request.log?.info({ by: account.label }, 'antigravity subscription login started');
+      return { url: started.url, expiresInSeconds: Math.round(PENDING_TTL_MS / 1000) };
+    });
+
+    app.post(`${prefix}/login/complete`, async (request, reply) => {
+      const account = await options.resolveAccount(request, reply);
+      if (!account) return;
+      if (!options.store) return reply.code(503).send({ error: 'no_store' });
+
+      sweep();
+      const entry = pending.get(account.id);
+      if (!entry) {
+        return reply.code(400).send({
+          error: 'no_pending_login',
+          message: 'That login has expired or was never started. Run the command again.',
+        });
+      }
+
+      const body = (request.body ?? {}) as { code?: unknown };
+      if (typeof body.code !== 'string' || body.code.length > MAX_CODE_LENGTH) {
+        return reply
+          .code(400)
+          .send({ error: 'bad_code', message: 'Paste the code from the approval page.' });
+      }
+
+      const parsed = parsePastedCode(body.code);
+      if (!parsed) {
+        return reply
+          .code(400)
+          .send({ error: 'bad_code', message: 'That does not look like an authorization code.' });
+      }
+
+      if (parsed.state !== null && !sameState(entry.state, parsed.state)) {
+        return reply.code(400).send({
+          error: 'state_mismatch',
+          message: 'That code came from a different login. Start again and use the newest link.',
+        });
+      }
+
+      pending.delete(account.id);
+
+      try {
+        const identity = await exchangeAntigravityCode({
+          code: parsed.code,
+          verifier: entry.verifier,
+        });
+        await options.store.save(account.id, identity);
+        request.log?.info(
+          { by: account.label, plan: identity.email },
+          'antigravity subscription connected',
+        );
+        return { ...(await options.store.status(account.id, now())), available: true };
+      } catch (error) {
+        if (error instanceof AntigravityLoginError) {
+          return reply
+            .code(400)
+            .send({ error: 'exchange_failed', message: error.message, restart: error.restart });
+        }
+        throw error;
+      }
+    });
+
+    app.get(prefix, async (request, reply) => {
+      const account = await options.resolveAccount(request, reply);
+      if (!account) return;
+      if (!options.store) return { ...DISCONNECTED, available: false };
+      return { ...(await options.store.status(account.id, now())), available: true };
+    });
+
+    app.delete(prefix, async (request, reply) => {
+      const account = await options.resolveAccount(request, reply);
+      if (!account) return;
+      if (!options.store) return reply.code(503).send({ error: 'no_store' });
+      pending.delete(account.id);
+      await options.store.forget(account.id);
+      request.log?.info({ by: account.label }, 'antigravity subscription disconnected');
+      return { ...DISCONNECTED, available: true };
+    });
+
+    app.put(prefix, async (request, reply) => {
+      const account = await options.resolveAccount(request, reply);
+      if (!account) return;
+      if (!options.store) return reply.code(503).send({ error: 'no_store' });
+      
+      const body = (request.body ?? {}) as { projectId?: unknown };
+      const projectId = typeof body.projectId === 'string' ? body.projectId.trim() || null : null;
+      
+      if (typeof options.store.setProjectId === 'function') {
+        await options.store.setProjectId(account.id, projectId);
+      }
+      return { ...(await options.store.status(account.id, now())), available: true };
+    });
+  };
+}

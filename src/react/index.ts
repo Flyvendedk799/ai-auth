@@ -21,3 +21,14 @@ export {
   startClaudeLogin,
   type ClaudeConnection,
 } from './client.js';
+
+export { AntigravityTerminal, type AntigravityTerminalProps } from './AntigravityTerminal.js';
+export {
+  antigravityApiPrefix,
+  antigravityStatus,
+  completeAntigravityLogin,
+  disconnectAntigravity,
+  setAntigravityApiPrefix,
+  startAntigravityLogin,
+  type AntigravityConnection,
+} from './client.js';

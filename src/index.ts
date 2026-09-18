@@ -54,38 +54,27 @@ export {
   type CodexIdentity,
 } from './codex/localCli.js';
 
-// --- Gemini: a Google account subscription signed in on this machine ---------
+// --- Antigravity: a Google account subscription signed in on this machine ---------
 export {
-  decryptGeminiFile,
-  GEMINI_CLI_CLIENT_ID,
-  GEMINI_CLI_CLIENT_SECRET,
-  GeminiAuthError,
-  GeminiCliCredential,
-  isGeminiExpired,
-  parseGeminiAuth,
-  readGeminiLogin,
-  refreshGeminiToken,
-  type GeminiHarvestOptions,
-  type GeminiIdentity,
-} from './gemini/localCli.js';
+  AntigravityAuthError,
+  AntigravityCliCredential,
+  readLocalAntigravityStatus,
+} from './antigravity/localCli.js';
 
 export {
-  exchangeGeminiCode,
-  GEMINI_OAUTH,
-  GeminiLoginError,
-  parseGeminiCallback,
-  startGeminiLogin,
-  type ExchangedGeminiIdentity,
-  type GeminiLoginOptions,
-  type GeminiLoginStart,
-} from './gemini/oauth.js';
+  exchangeAntigravityCode,
+  ANTIGRAVITY_OAUTH,
+  AntigravityLoginError,
+  startAntigravityLogin,
+  type AntigravityOAuthIdentity,
+  type AntigravityLoginStart,
+} from './antigravity/oauth.js';
 
 export {
-  GeminiAccountStore,
-  type GeminiAccountStatus,
-  type GeminiAccountStoreOptions,
-  type GeminiIdentityInput,
-} from './gemini/accountStore.js';
+  AntigravityAccountStore,
+  type AntigravityAccountStatus,
+  type AntigravityAccountStoreOptions,
+} from './antigravity/accountStore.js';
 
 // --- API keys ----------------------------------------------------------------
 export { ApiKeyStore, type ApiKeyStoreOptions, type KeySource, type ResolvedKey } from './keys/keyStore.js';
@@ -150,16 +139,16 @@ export {
   CLAUDE_CODE_VERSION,
   CODEX_BASE_URL,
   codexOptions,
-  geminiCliOptions,
-  geminiKeyOptions,
-  GEMINI_CODE_ASSIST_BASE_URL,
-  GEMINI_STUDIO_BASE_URL,
+  antigravityCliOptions,
+  antigravityKeyOptions,
+  antigravity_CODE_ASSIST_BASE_URL,
+  antigravity_STUDIO_BASE_URL,
   openAiKeyOptions,
   toCodeAssistRequest,
   type AnthropicClientOptions,
   type CodeAssistContent,
   type CodeAssistContentPart,
   type CodeAssistGenerateRequest,
-  type GeminiClientOptions,
+  type AntigravityClientOptions,
   type OpenAiClientOptions,
 } from './clients/options.js';

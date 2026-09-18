@@ -14,7 +14,7 @@
  */
 
 import type { CodexIdentity } from '../codex/localCli.js';
-import type { GeminiIdentity } from '../gemini/localCli.js';
+import type { AntigravityOAuthIdentity } from '../antigravity/oauth.js';
 
 /**
  * The Claude Code client version this presents as.
@@ -35,11 +35,11 @@ export const CLAUDE_CODE_BETA = [
 /** Codex speaks the OpenAI Responses API at its own host, not at `api.openai.com`. */
 export const CODEX_BASE_URL = 'https://chatgpt.com/backend-api/codex';
 
-/** Gemini CLI speaks Google's internal Cloud Code API for subscription calls. */
-export const GEMINI_CODE_ASSIST_BASE_URL = 'https://cloudcode-pa.googleapis.com/v1internal';
+/** antigravity CLI speaks Google's internal Cloud Code API for subscription calls. */
+export const antigravity_CODE_ASSIST_BASE_URL = 'https://cloudcode-pa.googleapis.com/v1internal';
 
 /** Standard Google AI Studio API base URL for metered API keys. */
-export const GEMINI_STUDIO_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+export const antigravity_STUDIO_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
 export interface AnthropicClientOptions {
   apiKey: string | null;
@@ -53,7 +53,7 @@ export interface OpenAiClientOptions {
   defaultHeaders?: Record<string, string>;
 }
 
-export interface GeminiClientOptions {
+export interface AntigravityClientOptions {
   apiKey?: string;
   authToken?: string;
   baseURL?: string;
@@ -122,7 +122,7 @@ export function codexOptions(identity: CodexIdentity, baseUrl = CODEX_BASE_URL):
 }
 
 /** A metered Google AI Studio API key. */
-export function geminiKeyOptions(apiKey: string, baseUrl = GEMINI_STUDIO_BASE_URL): GeminiClientOptions {
+export function antigravityKeyOptions(apiKey: string, baseUrl = antigravity_STUDIO_BASE_URL): AntigravityClientOptions {
   return {
     apiKey,
     baseURL: baseUrl,
@@ -130,14 +130,14 @@ export function geminiKeyOptions(apiKey: string, baseUrl = GEMINI_STUDIO_BASE_UR
 }
 
 /**
- * Gemini CLI, on a Google account subscription (Code Assist, personal free tier, G1 credits).
+ * antigravity CLI, on a Google account subscription (Code Assist, personal free tier, G1 credits).
  *
  * Directs calls to Google's internal Cloud Code endpoint (`https://cloudcode-pa.googleapis.com/v1internal`).
  */
-export function geminiCliOptions(
-  identity: GeminiIdentity,
-  baseUrl = GEMINI_CODE_ASSIST_BASE_URL,
-): GeminiClientOptions {
+export function antigravityCliOptions(
+  identity: AntigravityOAuthIdentity & { projectId?: string | null },
+  baseUrl = antigravity_CODE_ASSIST_BASE_URL,
+): AntigravityClientOptions {
   return {
     authToken: identity.accessToken,
     baseURL: baseUrl,

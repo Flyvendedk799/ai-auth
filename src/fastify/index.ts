@@ -10,3 +10,8 @@ export {
   type ClaudeAuthAccount,
   type ClaudeAuthRoutesOptions,
 } from './routes.js';
+
+export {
+  antigravityAuthRoutes,
+  type AntigravityAuthRoutesOptions,
+} from './routes.js';
