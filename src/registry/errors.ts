@@ -101,7 +101,7 @@ function detailOf(error: unknown): string | null {
 /** Which CLI owns the login behind a subscription provider, for the "run this" sentence. */
 function cliFor(provider: ProviderId): string {
   if (provider === 'codex') return 'codex';
-  if (provider === 'gemini-cli') return 'gemini';
+  if (provider === 'gemini-cli') return 'agy';
   return 'claude';
 }
 
