@@ -108,6 +108,13 @@ export const MODELS: readonly ModelSpec[] = [
     tier: 'heavy',
     note: 'Next-gen flagship reasoning model.',
   },
+  {
+    id: 'gemini-3.1-pro',
+    label: 'Gemini 3.1 Pro',
+    wire: 'gemini',
+    tier: 'heavy',
+    note: 'High reasoning flagship model.',
+  },
 ];
 
 /** The models that make sense for a provider, lightest first. */
