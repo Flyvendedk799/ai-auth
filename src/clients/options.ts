@@ -140,7 +140,7 @@ export function antigravityCliOptions(
   identity: AntigravityOAuthIdentity & { projectId?: string | null },
   baseUrl = antigravity_CODE_ASSIST_BASE_URL,
 ): AntigravityClientOptions {
-  const effectiveProjectId = identity.projectId || (process.env.AGY_DOGFOOD === "1" ? "gemini-code-assist-g1-prod" : null);
+  const effectiveProjectId = identity.projectId || null;
 
   return {
     authToken: identity.accessToken,
