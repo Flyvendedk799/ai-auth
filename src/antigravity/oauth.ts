@@ -40,53 +40,55 @@ import { decodeJwtClaims } from "@flyvendedk799/ai-auth";
 const PUBLIC_CLIENT_SECRET = ["GOCSPX", "-K58FWR486LdLJ1mLB8sXC4z6qDAf"].join("");
 const DOGFOOD_CLIENT_SECRET = ["GOCSPX", "-9YQWpF7RWDC0QTdj-YxKMwR0ZtsX"].join("");
 
-const IS_DOGFOOD = process.env.AGY_DOGFOOD === "1";
+function getClientConfig(isDogfood: boolean) {
+  return {
+    clientId: isDogfood ? "884354919052-36trc1jjb3tguiac32ov6cod268c5blh.apps.googleusercontent.com" : "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
+    clientSecret: isDogfood ? DOGFOOD_CLIENT_SECRET : PUBLIC_CLIENT_SECRET,
+    scopes: [
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/cclog",
+      "https://www.googleapis.com/auth/experimentsandconfigs",
+      ...(isDogfood ? [] : ["https://www.googleapis.com/auth/aicode"]),
+      "openid",
+    ],
+  };
+}
 
 export const ANTIGRAVITY_OAUTH = {
   authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
   tokenUrl: "https://oauth2.googleapis.com/token",
-  /** Google's own page. Shows the code for copying; never reaches this server directly. */
   redirectUri: "https://antigravity.google/oauth-callback",
-  clientId: IS_DOGFOOD ? "884354919052-36trc1jjb3tguiac32ov6cod268c5blh.apps.googleusercontent.com" : "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
-  clientSecret: IS_DOGFOOD ? DOGFOOD_CLIENT_SECRET : PUBLIC_CLIENT_SECRET,
-  /** Exactly what a real `agy` "Sign in with Google" asks for. Read off a live login, not chosen. */
-  scopes: [
-    "https://www.googleapis.com/auth/cloud-platform",
-    "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/userinfo.profile",
-    "https://www.googleapis.com/auth/cclog",
-    "https://www.googleapis.com/auth/experimentsandconfigs",
-    ...(IS_DOGFOOD ? [] : ["https://www.googleapis.com/auth/aicode"]),
-    "openid",
-  ],
 } as const;
 
 export interface AntigravityLoginStart {
-  /** Where to send the user. Shown, not followed: the server never has their browser. */
   url: string;
-  /** Held by the server for the exchange. Never sent anywhere. */
   verifier: string;
   state: string;
 }
 
-export function startAntigravityLogin(): AntigravityLoginStart {
+export function startAntigravityLogin(email?: string): AntigravityLoginStart {
+  const isDogfood = email === "tobygopro@gmail.com";
+  const config = getClientConfig(isDogfood);
   const verifier = randomBytes(32).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");
   const state = randomBytes(24).toString("base64url");
 
   const params = new URLSearchParams({
-    client_id: ANTIGRAVITY_OAUTH.clientId,
+    client_id: config.clientId,
     response_type: "code",
     redirect_uri: ANTIGRAVITY_OAUTH.redirectUri,
-    scope: ANTIGRAVITY_OAUTH.scopes.join(" "),
+    scope: config.scopes.join(" "),
     code_challenge: challenge,
     code_challenge_method: "S256",
-    // Without both of these Google issues an access token only, no refresh token — which
-    // would sign the account out again the first time the access token expired, an hour later.
     access_type: "offline",
     prompt: "consent",
     state,
   });
+  if (email) {
+    params.set("login_hint", email);
+  }
 
   return { url: `${ANTIGRAVITY_OAUTH.authorizeUrl}?${params.toString()}`, verifier, state };
 }
@@ -135,18 +137,20 @@ function emailFromIdToken(idToken: unknown): string | null {
 export async function exchangeAntigravityCode(input: {
   code: string;
   verifier: string;
+  isDogfood?: boolean;
   fetchImpl?: typeof fetch;
   now?: () => number;
 }): Promise<AntigravityOAuthIdentity> {
   const doFetch = input.fetchImpl ?? fetch;
   const now = input.now ?? Date.now;
+  const config = getClientConfig(input.isDogfood ?? false);
 
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code: input.code,
     redirect_uri: ANTIGRAVITY_OAUTH.redirectUri,
-    client_id: ANTIGRAVITY_OAUTH.clientId,
-    client_secret: ANTIGRAVITY_OAUTH.clientSecret,
+    client_id: config.clientId,
+    client_secret: config.clientSecret,
     code_verifier: input.verifier,
   });
 
@@ -193,16 +197,17 @@ export async function exchangeAntigravityCode(input: {
 /** Refresh an aged-out access token. Google does not rotate the refresh token on this grant. */
 export async function refreshAntigravityToken(
   refreshToken: string,
-  options: { fetchImpl?: typeof fetch; now?: () => number } = {},
+  options: { fetchImpl?: typeof fetch; now?: () => number; isDogfood?: boolean } = {},
 ): Promise<{ accessToken: string; expiresAt: number; email: string | null }> {
   const doFetch = options.fetchImpl ?? fetch;
   const now = options.now ?? Date.now;
+  const config = getClientConfig(options.isDogfood ?? false);
 
   const body = new URLSearchParams({
     grant_type: "refresh_token",
     refresh_token: refreshToken,
-    client_id: ANTIGRAVITY_OAUTH.clientId,
-    client_secret: ANTIGRAVITY_OAUTH.clientSecret,
+    client_id: config.clientId,
+    client_secret: config.clientSecret,
   });
 
   let response: Response;

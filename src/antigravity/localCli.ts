@@ -74,7 +74,9 @@ export class AntigravityCliCredential {
       );
     }
 
-    const refreshed = await refreshAntigravityToken(identity.refreshToken);
+    const refreshed = await refreshAntigravityToken(identity.refreshToken, {
+      isDogfood: identity.email === "tobygopro@gmail.com",
+    });
     this.inMemoryRefreshed = {
       accessToken: refreshed.accessToken,
       expiresAt: refreshed.expiresAt,

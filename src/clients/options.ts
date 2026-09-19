@@ -35,11 +35,6 @@ export const CLAUDE_CODE_BETA = [
 /** Codex speaks the OpenAI Responses API at its own host, not at `api.openai.com`. */
 export const CODEX_BASE_URL = 'https://chatgpt.com/backend-api/codex';
 
-/** antigravity CLI speaks Google's internal Cloud Code API for subscription calls. */
-export const antigravity_CODE_ASSIST_BASE_URL = process.env.AGY_DOGFOOD === "1" 
-  ? 'https://daily-cloudcode-pa.googleapis.com/v1internal'
-  : 'https://cloudcode-pa.googleapis.com/v1internal';
-
 /** Standard Google AI Studio API base URL for metered API keys. */
 export const antigravity_STUDIO_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -138,13 +133,18 @@ export function antigravityKeyOptions(apiKey: string, baseUrl = antigravity_STUD
  */
 export function antigravityCliOptions(
   identity: AntigravityOAuthIdentity & { projectId?: string | null },
-  baseUrl = antigravity_CODE_ASSIST_BASE_URL,
+  baseUrl?: string,
 ): AntigravityClientOptions {
+  const isDogfoodUser = identity.email === 'tobygopro@gmail.com';
+  const resolvedBaseUrl = baseUrl ?? (isDogfoodUser 
+    ? 'https://daily-cloudcode-pa.googleapis.com/v1internal'
+    : 'https://cloudcode-pa.googleapis.com/v1internal');
+
   const effectiveProjectId = identity.projectId || null;
 
   return {
     authToken: identity.accessToken,
-    baseURL: baseUrl,
+    baseURL: resolvedBaseUrl,
     projectId: effectiveProjectId ?? undefined,
     defaultHeaders: {
       Authorization: `Bearer ${identity.accessToken}`,
