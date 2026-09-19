@@ -68,8 +68,7 @@ export interface AntigravityLoginStart {
   state: string;
 }
 
-export function startAntigravityLogin(email?: string): AntigravityLoginStart {
-  const isDogfood = email === "tobygopro@gmail.com";
+export function startAntigravityLogin(isDogfood: boolean, email?: string): AntigravityLoginStart {
   const config = getClientConfig(isDogfood);
   const verifier = randomBytes(32).toString("base64url");
   const challenge = createHash("sha256").update(verifier).digest("base64url");

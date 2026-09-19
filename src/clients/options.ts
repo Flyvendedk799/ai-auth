@@ -135,7 +135,7 @@ export function antigravityCliOptions(
   identity: AntigravityOAuthIdentity & { projectId?: string | null },
   baseUrl?: string,
 ): AntigravityClientOptions {
-  const isDogfoodUser = identity.isDogfood ?? (identity.email === 'tobygopro@gmail.com');
+  const isDogfoodUser = identity.isDogfood ?? false;
   const resolvedBaseUrl = baseUrl ?? (isDogfoodUser 
     ? 'https://daily-cloudcode-pa.googleapis.com/v1internal'
     : 'https://cloudcode-pa.googleapis.com/v1internal');

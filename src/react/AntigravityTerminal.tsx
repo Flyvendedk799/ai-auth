@@ -133,7 +133,7 @@ export function AntigravityTerminal({ onChange }: AntigravityTerminalProps) {
     setStage({ kind: 'starting' });
     print('out', 'Starting sign-in…');
     try {
-      const started = await startAntigravityLogin();
+      const started = await startAntigravityLogin(true);
       setStage({ kind: 'awaiting', url: started.url });
       print('out', 'Open this URL and approve the request:');
       print('link', started.url);

@@ -45,6 +45,7 @@ interface Pending {
   verifier: string;
   state: string;
   expiresAt: number;
+  isDogfood?: boolean;
 }
 
 export interface ClaudeAuthAccount {
@@ -229,6 +230,8 @@ export function antigravityAuthRoutes(options: AntigravityAuthRoutesOptions): Fa
 
   return async (app) => {
     app.post(`${prefix}/login`, async (request, reply) => {
+      const body = request.body as { isDogfood?: boolean } | null;
+      const isDogfood = typeof body?.isDogfood === 'boolean' ? body.isDogfood : true;
       const account = await options.resolveAccount(request, reply);
       if (!account) return;
       if (!options.store) {
@@ -239,11 +242,12 @@ export function antigravityAuthRoutes(options: AntigravityAuthRoutesOptions): Fa
       }
 
       sweep();
-      const started = startAntigravityLogin();
+      const started = startAntigravityLogin(isDogfood);
       pending.set(account.id, {
         verifier: started.verifier,
         state: started.state,
         expiresAt: now() + PENDING_TTL_MS,
+        isDogfood,
       });
 
       request.log?.info({ by: account.label }, 'antigravity subscription login started');
@@ -291,6 +295,7 @@ export function antigravityAuthRoutes(options: AntigravityAuthRoutesOptions): Fa
         const identity = await exchangeAntigravityCode({
           code: parsed.code,
           verifier: entry.verifier,
+          isDogfood: entry.isDogfood,
         });
         await options.store.save(account.id, identity);
         request.log?.info(

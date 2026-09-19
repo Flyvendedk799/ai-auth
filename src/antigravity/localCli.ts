@@ -31,12 +31,14 @@ export class AntigravityCliCredential {
       const expiresAt = typeof parsed.token?.expiry === "string" ? Date.parse(parsed.token.expiry) : NaN;
       const claims = typeof parsed.id_token === "string" ? decodeJwtClaims(parsed.id_token) : null;
       const email = typeof claims?.email === "string" ? claims.email : null;
+      const isDogfood = typeof claims?.azp === "string" && claims.azp.startsWith("884354919052");
 
       return {
         accessToken,
         refreshToken: typeof refreshToken === "string" && refreshToken.length > 0 ? refreshToken : null,
         expiresAt: Number.isFinite(expiresAt) ? expiresAt : 0,
         email,
+        isDogfood,
       };
     } catch {
       return null;
@@ -75,7 +77,7 @@ export class AntigravityCliCredential {
     }
 
     const refreshed = await refreshAntigravityToken(identity.refreshToken, {
-      isDogfood: identity.email === "tobygopro@gmail.com",
+      isDogfood: identity.isDogfood,
     });
     this.inMemoryRefreshed = {
       accessToken: refreshed.accessToken,
@@ -86,7 +88,8 @@ export class AntigravityCliCredential {
       accessToken: this.inMemoryRefreshed.accessToken,
       refreshToken: identity.refreshToken ?? null,
       expiresAt: this.inMemoryRefreshed.expiresAt,
-      email: this.inMemoryRefreshed.email
+      email: this.inMemoryRefreshed.email,
+      isDogfood: identity.isDogfood,
     };
   }
 }

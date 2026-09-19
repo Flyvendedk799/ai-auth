@@ -5,7 +5,6 @@ import {
   codexOptions,
   antigravityCliOptions,
   antigravityKeyOptions,
-  antigravity_CODE_ASSIST_BASE_URL,
   antigravity_STUDIO_BASE_URL,
   openAiKeyOptions,
   toCodeAssistRequest,
@@ -47,13 +46,13 @@ describe('client options', () => {
     const opts = antigravityCliOptions({
       accessToken: 'ya29.test',
       refreshToken: null,
-      expiresAt: 12345,
-      email: 'tester@example.com',
+      expiresAt: 0,
+      email: 'test@example.com',
       projectId: 'proj-456',
     });
 
     expect(opts.authToken).toBe('ya29.test');
-    expect(opts.baseURL).toBe(antigravity_CODE_ASSIST_BASE_URL);
+    expect(opts.baseURL).toBe('https://cloudcode-pa.googleapis.com/v1internal');
     expect(opts.defaultHeaders?.Authorization).toBe('Bearer ya29.test');
     expect(opts.defaultHeaders?.['x-goog-user-project']).toBe('proj-456');
   });
