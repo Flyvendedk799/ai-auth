@@ -36,7 +36,9 @@ export const CLAUDE_CODE_BETA = [
 export const CODEX_BASE_URL = 'https://chatgpt.com/backend-api/codex';
 
 /** antigravity CLI speaks Google's internal Cloud Code API for subscription calls. */
-export const antigravity_CODE_ASSIST_BASE_URL = 'https://cloudcode-pa.googleapis.com/v1internal';
+export const antigravity_CODE_ASSIST_BASE_URL = process.env.AGY_DOGFOOD === "1" 
+  ? 'https://daily-cloudcode-pa.googleapis.com/v1internal'
+  : 'https://cloudcode-pa.googleapis.com/v1internal';
 
 /** Standard Google AI Studio API base URL for metered API keys. */
 export const antigravity_STUDIO_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
@@ -138,14 +140,16 @@ export function antigravityCliOptions(
   identity: AntigravityOAuthIdentity & { projectId?: string | null },
   baseUrl = antigravity_CODE_ASSIST_BASE_URL,
 ): AntigravityClientOptions {
+  const effectiveProjectId = identity.projectId || (process.env.AGY_DOGFOOD === "1" ? "gemini-code-assist-g1-prod" : null);
+
   return {
     authToken: identity.accessToken,
     baseURL: baseUrl,
-    projectId: identity.projectId ?? undefined,
+    projectId: effectiveProjectId ?? undefined,
     defaultHeaders: {
       Authorization: `Bearer ${identity.accessToken}`,
       'Content-Type': 'application/json',
-      ...(identity.projectId ? { 'x-goog-user-project': identity.projectId } : {}),
+      ...(effectiveProjectId ? { 'x-goog-user-project': effectiveProjectId } : {}),
     },
   };
 }

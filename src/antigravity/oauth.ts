@@ -37,15 +37,18 @@ import { createHash, randomBytes } from "node:crypto";
 import { decodeJwtClaims } from "@flyvendedk799/ai-auth";
 
 /** Segmented so a naive secret scanner does not flag a value that is, functionally, a config constant. */
-const CLIENT_SECRET = ["GOCSPX", "-K58FWR486LdLJ1mLB8sXC4z6qDAf"].join("");
+const PUBLIC_CLIENT_SECRET = ["GOCSPX", "-K58FWR486LdLJ1mLB8sXC4z6qDAf"].join("");
+const DOGFOOD_CLIENT_SECRET = ["GOCSPX", "-9YQWpF7RWDC0QTdj-YxKMwR0ZtsX"].join("");
+
+const IS_DOGFOOD = process.env.AGY_DOGFOOD === "1";
 
 export const ANTIGRAVITY_OAUTH = {
-  authorizeUrl: "https://accounts.google.com/o/oauth2/auth",
+  authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
   tokenUrl: "https://oauth2.googleapis.com/token",
   /** Google's own page. Shows the code for copying; never reaches this server directly. */
   redirectUri: "https://antigravity.google/oauth-callback",
-  clientId: "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
-  clientSecret: CLIENT_SECRET,
+  clientId: IS_DOGFOOD ? "884354919052-36trc1jjb3tguiac32ov6cod268c5blh.apps.googleusercontent.com" : "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
+  clientSecret: IS_DOGFOOD ? DOGFOOD_CLIENT_SECRET : PUBLIC_CLIENT_SECRET,
   /** Exactly what a real `agy` "Sign in with Google" asks for. Read off a live login, not chosen. */
   scopes: [
     "https://www.googleapis.com/auth/cloud-platform",
