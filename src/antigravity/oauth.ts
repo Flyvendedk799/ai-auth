@@ -57,7 +57,7 @@ function getClientConfig(isDogfood: boolean) {
 }
 
 export const ANTIGRAVITY_OAUTH = {
-  authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+  authorizeUrl: "https://accounts.google.com/o/oauth2/auth",
   tokenUrl: "https://oauth2.googleapis.com/token",
   redirectUri: "https://antigravity.google/oauth-callback",
 } as const;

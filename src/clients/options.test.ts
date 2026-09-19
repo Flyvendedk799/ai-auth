@@ -6,6 +6,8 @@ import {
   antigravityCliOptions,
   antigravityKeyOptions,
   antigravity_STUDIO_BASE_URL,
+  CLOUD_CODE_DAILY_BASE_URL,
+  normalizeAntigravityModelId,
   openAiKeyOptions,
   toCodeAssistRequest,
 } from './options.js';
@@ -42,7 +44,23 @@ describe('client options', () => {
     expect(opts.baseURL).toBe(antigravity_STUDIO_BASE_URL);
   });
 
-  it('generates correct antigravityCliOptions', () => {
+  it('defaults antigravityCliOptions to daily and skips aicode-consumers header', () => {
+    const opts = antigravityCliOptions({
+      accessToken: 'ya29.test',
+      refreshToken: null,
+      expiresAt: 0,
+      email: 'test@example.com',
+      projectId: 'aicode-consumers',
+    });
+
+    expect(opts.authToken).toBe('ya29.test');
+    expect(opts.baseURL).toBe(CLOUD_CODE_DAILY_BASE_URL);
+    expect(opts.defaultHeaders?.Authorization).toBe('Bearer ya29.test');
+    expect(opts.defaultHeaders?.['x-goog-user-project']).toBeUndefined();
+    expect(opts.projectId).toBeUndefined();
+  });
+
+  it('puts a personal project on x-goog-user-project', () => {
     const opts = antigravityCliOptions({
       accessToken: 'ya29.test',
       refreshToken: null,
@@ -50,38 +68,39 @@ describe('client options', () => {
       email: 'test@example.com',
       projectId: 'proj-456',
     });
-
-    expect(opts.authToken).toBe('ya29.test');
-    expect(opts.baseURL).toBe('https://cloudcode-pa.googleapis.com/v1internal');
-    expect(opts.defaultHeaders?.Authorization).toBe('Bearer ya29.test');
     expect(opts.defaultHeaders?.['x-goog-user-project']).toBe('proj-456');
   });
 
-  it('builds Code Assist generation payload correctly with toCodeAssistRequest', () => {
-    const stringReq = toCodeAssistRequest('antigravity-2.5-flash', 'Hello world');
+  it('builds Code Assist generation payload with bare model ids', () => {
+    const stringReq = toCodeAssistRequest('gemini-3-flash', 'Hello world');
     expect(stringReq).toEqual({
-      model: 'models/antigravity-2.5-flash',
+      model: 'gemini-3-flash',
       request: {
         contents: [{ role: 'user', parts: [{ text: 'Hello world' }] }],
       },
     });
 
     const structuredReq = toCodeAssistRequest(
-      'models/antigravity-2.5-pro',
+      'models/gemini-3.1-pro',
       [{ role: 'user', parts: [{ text: 'Explain gravity' }] }],
       {
-        projectId: 'gcp-project',
+        projectId: 'aicode-consumers',
         systemInstruction: 'You are an astrophysicist',
         userPromptId: 'prompt-1',
       },
     );
 
-    expect(structuredReq.model).toBe('models/antigravity-2.5-pro');
-    expect(structuredReq.project).toBe('gcp-project');
+    expect(structuredReq.model).toBe('gemini-3.1-pro-low');
+    expect(structuredReq.project).toBe('aicode-consumers');
     expect(structuredReq.user_prompt_id).toBe('prompt-1');
     expect(structuredReq.request.systemInstruction).toEqual({
       role: 'system',
       parts: [{ text: 'You are an astrophysicist' }],
     });
+  });
+
+  it('normalizeAntigravityModelId strips models/ and maps bare pro', () => {
+    expect(normalizeAntigravityModelId('models/gemini-3-flash')).toBe('gemini-3-flash');
+    expect(normalizeAntigravityModelId('gemini-3.1-pro')).toBe('gemini-3.1-pro-low');
   });
 });

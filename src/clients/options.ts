@@ -131,25 +131,65 @@ export function antigravityKeyOptions(apiKey: string, baseUrl = antigravity_STUD
  *
  * Directs calls to Google's internal Cloud Code endpoint (`https://cloudcode-pa.googleapis.com/v1internal`).
  */
+/** Google shared consumer project — OK in generateContent body, never as x-goog-user-project. */
+export const GOOGLE_ENTERPRISE_CLOUD_CODE_PROJECT = 'aicode-consumers';
+
+export const CLOUD_CODE_PROD_BASE_URL = 'https://cloudcode-pa.googleapis.com/v1internal';
+export const CLOUD_CODE_DAILY_BASE_URL = 'https://daily-cloudcode-pa.googleapis.com/v1internal';
+
+/**
+ * Bare Cloud Code model ids (agy). Prefixing `models/` 404s on daily.
+ * Maps UI `gemini-3.1-pro` to the tiered id daily knows.
+ */
+export function normalizeAntigravityModelId(model: string): string {
+  const trimmed = model.trim();
+  const bare = trimmed.startsWith('models/') ? trimmed.slice('models/'.length) : trimmed;
+  if (bare === 'gemini-3.1-pro' || bare === 'gemini-3-pro') return 'gemini-3.1-pro-low';
+  return bare;
+}
+
+/**
+ * Strip enterprise shared project from header use. Personal tokens 403 on
+ * `x-goog-user-project: aicode-consumers` (body-only is fine).
+ */
+export function sanitizePersonalCloudCodeProject(
+  projectId: string | null | undefined,
+): string | null {
+  const trimmed = typeof projectId === 'string' ? projectId.trim() : '';
+  if (!trimmed || trimmed === GOOGLE_ENTERPRISE_CLOUD_CODE_PROJECT) return null;
+  return trimmed;
+}
+
+/**
+ * antigravity CLI / personal Google AI on Cloud Code.
+ *
+ * Verified vs agy 1.2.7 (flyvendee@gmail.com): consumer tokens succeed on **daily**;
+ * prod often false-429s. Never put `aicode-consumers` on `x-goog-user-project`.
+ */
 export function antigravityCliOptions(
-  identity: AntigravityOAuthIdentity & { projectId?: string | null },
+  identity: AntigravityOAuthIdentity & {
+    projectId?: string | null;
+    /** When true, or when unset for personal consumer, use daily host. */
+    isDogfood?: boolean;
+  },
   baseUrl?: string,
 ): AntigravityClientOptions {
-  const isDogfoodUser = identity.isDogfood ?? false;
-  const resolvedBaseUrl = baseUrl ?? (isDogfoodUser 
-    ? 'https://daily-cloudcode-pa.googleapis.com/v1internal'
-    : 'https://cloudcode-pa.googleapis.com/v1internal');
+  // Default daily — matches real agy post-login generateContent host for personal AI.
+  const useDaily = identity.isDogfood !== false;
+  const resolvedBaseUrl =
+    baseUrl ?? (useDaily ? CLOUD_CODE_DAILY_BASE_URL : CLOUD_CODE_PROD_BASE_URL);
 
-  const effectiveProjectId = identity.projectId || null;
+  const headerProjectId = sanitizePersonalCloudCodeProject(identity.projectId);
 
   return {
     authToken: identity.accessToken,
     baseURL: resolvedBaseUrl,
-    projectId: effectiveProjectId ?? undefined,
+    projectId: headerProjectId ?? undefined,
     defaultHeaders: {
       Authorization: `Bearer ${identity.accessToken}`,
       'Content-Type': 'application/json',
-      ...(effectiveProjectId ? { 'x-goog-user-project': effectiveProjectId } : {}),
+      'User-Agent': 'antigravity/1.21.9 linux/amd64',
+      ...(headerProjectId ? { 'x-goog-user-project': headerProjectId } : {}),
     },
   };
 }
@@ -187,9 +227,19 @@ export function toCodeAssistRequest(
       ? [{ role: 'user', parts: [{ text: contents }] }]
       : contents;
 
+  // Bare model id — `models/` prefix 404s on daily-cloudcode-pa (verified 2026-09-19).
+  const wireModel = normalizeAntigravityModelId(model);
+  // aicode-consumers may be sent as body project; never rely on header for it.
+  const bodyProject =
+    options.projectId && options.projectId !== GOOGLE_ENTERPRISE_CLOUD_CODE_PROJECT
+      ? options.projectId
+      : options.projectId === GOOGLE_ENTERPRISE_CLOUD_CODE_PROJECT
+        ? GOOGLE_ENTERPRISE_CLOUD_CODE_PROJECT
+        : options.projectId;
+
   return {
-    model: model.startsWith('models/') ? model : `models/${model}`,
-    ...(options.projectId ? { project: options.projectId } : {}),
+    model: wireModel,
+    ...(bodyProject ? { project: bodyProject } : {}),
     ...(options.userPromptId ? { user_prompt_id: options.userPromptId } : {}),
     request: {
       contents: normalizedContents,
