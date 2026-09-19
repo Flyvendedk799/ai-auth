@@ -141,7 +141,6 @@ export {
   codexOptions,
   antigravityCliOptions,
   antigravityKeyOptions,
-  antigravity_CODE_ASSIST_BASE_URL,
   antigravity_STUDIO_BASE_URL,
   openAiKeyOptions,
   toCodeAssistRequest,
