@@ -110,6 +110,7 @@ export interface AntigravityOAuthIdentity {
   /** Unix ms. */
   expiresAt: number;
   email: string | null;
+  isDogfood?: boolean;
 }
 
 interface TokenResponse {
@@ -191,6 +192,7 @@ export async function exchangeAntigravityCode(input: {
     refreshToken: typeof refreshToken === "string" && refreshToken.length > 0 ? refreshToken : null,
     expiresAt: now() + expiresIn * 1000,
     email: emailFromIdToken(json?.id_token),
+    isDogfood: input.isDogfood,
   };
 }
 
