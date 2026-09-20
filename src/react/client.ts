@@ -102,7 +102,7 @@ export async function antigravityStatus(): Promise<AntigravityConnection> {
   return (await response.json()) as AntigravityConnection;
 }
 
-export async function startAntigravityLogin(isDogfood = true): Promise<{ url: string; expiresInSeconds: number }> {
+export async function startAntigravityLogin(isDogfood = false): Promise<{ url: string; expiresInSeconds: number }> {
   const response = await callAg('POST', '/login', { isDogfood });
   if (!response.ok) throw new Error(await describe(response));
   return (await response.json()) as { url: string; expiresInSeconds: number };

@@ -231,7 +231,9 @@ export function antigravityAuthRoutes(options: AntigravityAuthRoutesOptions): Fa
   return async (app) => {
     app.post(`${prefix}/login`, async (request, reply) => {
       const body = request.body as { isDogfood?: boolean } | null;
-      const isDogfood = typeof body?.isDogfood === 'boolean' ? body.isDogfood : true;
+      // Default to the prod client: Dogfood/G1 is not a valid alternative login path for a
+      // browser-initiated Connect flow — see AntigravityTerminal.tsx and react/client.ts.
+      const isDogfood = typeof body?.isDogfood === 'boolean' ? body.isDogfood : false;
       const account = await options.resolveAccount(request, reply);
       if (!account) return;
       if (!options.store) {
