@@ -7,6 +7,7 @@ import {
   antigravityKeyOptions,
   antigravity_STUDIO_BASE_URL,
   CLOUD_CODE_DAILY_BASE_URL,
+  CLOUD_CODE_PROD_BASE_URL,
   normalizeAntigravityModelId,
   openAiKeyOptions,
   toCodeAssistRequest,
@@ -60,6 +61,29 @@ describe('client options', () => {
     expect(opts.projectId).toBeUndefined();
   });
 
+  it('uses daily for an identity from an ordinary (non-dogfood) login too', () => {
+    // isDogfood names the OAuth client that minted the token, not the Cloud Code host. Routing
+    // `false` to prod made healthy personal accounts answer 429 RESOURCE_EXHAUSTED.
+    for (const isDogfood of [true, false, undefined]) {
+      const opts = antigravityCliOptions({
+        accessToken: 'ya29.test',
+        refreshToken: null,
+        expiresAt: 0,
+        email: null,
+        isDogfood,
+      });
+      expect(opts.baseURL).toBe(CLOUD_CODE_DAILY_BASE_URL);
+    }
+  });
+
+  it('lets a caller pick the host explicitly', () => {
+    const opts = antigravityCliOptions(
+      { accessToken: 'ya29.test', refreshToken: null, expiresAt: 0, email: null },
+      CLOUD_CODE_PROD_BASE_URL,
+    );
+    expect(opts.baseURL).toBe(CLOUD_CODE_PROD_BASE_URL);
+  });
+
   it('puts a personal project on x-goog-user-project', () => {
     const opts = antigravityCliOptions({
       accessToken: 'ya29.test',
@@ -102,5 +126,7 @@ describe('client options', () => {
   it('normalizeAntigravityModelId strips models/ and maps bare pro', () => {
     expect(normalizeAntigravityModelId('models/gemini-3-flash')).toBe('gemini-3-flash');
     expect(normalizeAntigravityModelId('gemini-3.1-pro')).toBe('gemini-3.1-pro-low');
+    expect(normalizeAntigravityModelId('gemini-3.1-flash')).toBe('gemini-3-flash');
+    expect(normalizeAntigravityModelId('models/gemini-3.2-flash-lite')).toBe('gemini-3-flash');
   });
 });

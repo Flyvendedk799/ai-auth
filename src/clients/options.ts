@@ -139,12 +139,14 @@ export const CLOUD_CODE_DAILY_BASE_URL = 'https://daily-cloudcode-pa.googleapis.
 
 /**
  * Bare Cloud Code model ids (agy). Prefixing `models/` 404s on daily.
- * Maps UI `gemini-3.1-pro` to the tiered id daily knows.
+ * Maps UI `gemini-3.1-pro` to the tiered id daily knows, and any `gemini-3.N-flash` to `gemini-3-flash`.
  */
 export function normalizeAntigravityModelId(model: string): string {
   const trimmed = model.trim();
   const bare = trimmed.startsWith('models/') ? trimmed.slice('models/'.length) : trimmed;
   if (bare === 'gemini-3.1-pro' || bare === 'gemini-3-pro') return 'gemini-3.1-pro-low';
+  // Cloud Code has a single flash id, whatever minor version a UI names (`gemini-3.1-flash`, ...).
+  if (/^gemini-3\.\d+-flash/i.test(bare)) return 'gemini-3-flash';
   return bare;
 }
 
@@ -169,15 +171,16 @@ export function sanitizePersonalCloudCodeProject(
 export function antigravityCliOptions(
   identity: AntigravityOAuthIdentity & {
     projectId?: string | null;
-    /** When true, or when unset for personal consumer, use daily host. */
-    isDogfood?: boolean;
   },
   baseUrl?: string,
 ): AntigravityClientOptions {
-  // Default daily — matches real agy post-login generateContent host for personal AI.
-  const useDaily = identity.isDogfood !== false;
-  const resolvedBaseUrl =
-    baseUrl ?? (useDaily ? CLOUD_CODE_DAILY_BASE_URL : CLOUD_CODE_PROD_BASE_URL);
+  // Always daily, and deliberately NOT keyed off `identity.isDogfood`. That flag says which OAuth
+  // *client* minted the token (see startAntigravityLogin); it says nothing about which Cloud Code
+  // host the token belongs on. A stored identity from an ordinary login carries `isDogfood: false`,
+  // and treating that as "use prod" sent every such call to a host that answers a healthy
+  // personal account with a false 429 RESOURCE_EXHAUSTED. Pass `baseUrl` (e.g.
+  // CLOUD_CODE_PROD_BASE_URL) to override on purpose.
+  const resolvedBaseUrl = baseUrl ?? CLOUD_CODE_DAILY_BASE_URL;
 
   const headerProjectId = sanitizePersonalCloudCodeProject(identity.projectId);
 
