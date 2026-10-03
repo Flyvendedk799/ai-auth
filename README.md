@@ -232,9 +232,18 @@ Because that is whose client id this flow uses. Tell your users, and read Anthro
 
 Every OAuth constant here was read out of the installed CLIs rather than guessed, because a wrong endpoint fails as an opaque HTML page rather than as an error.
 
-### 8. Gemini CLI calls Cloud Code, not generativelanguage.googleapis.com
+### 8. Antigravity (agy) calls Cloud Code, not generativelanguage.googleapis.com
 
-Gemini CLI's personal Google login (1,000 free requests/day and Google One AI credits) does not bill against the public Gemini API endpoint (`generativelanguage.googleapis.com`). Instead, it routes to Google's internal Cloud Code endpoint (`https://cloudcode-pa.googleapis.com/v1internal:generateContent`), wrapping requests in `{ model, request: { contents: [...] } }`. Calling `generativelanguage` with an OAuth bearer without a GCP quota project fails. `geminiCliOptions` and `toCodeAssistRequest` format this wire for you.
+A personal Google login through Antigravity does not bill against the public Gemini API endpoint (`generativelanguage.googleapis.com`). It routes to Google's internal Cloud Code endpoint, wrapping requests in `{ model, request: { contents: [...] } }`. Calling `generativelanguage` with an OAuth bearer without a GCP quota project fails. `antigravityCliOptions` and `toCodeAssistRequest` format this wire for you. The parts that bite when you wire it into an app:
+
+- **Use the `daily` host** (`https://daily-cloudcode-pa.googleapis.com/v1internal`, `CLOUD_CODE_DAILY_BASE_URL`). The `prod` host answers a healthy personal account with `429 RESOURCE_EXHAUSTED` ("Resource has been exhausted (e.g. check quota)"), which looks exactly like a spent quota. `antigravityCliOptions` returns daily unless you pass a `baseUrl`.
+- **`isDogfood` is about the OAuth client, not the host.** It chooses which client id signs the user in and refreshes the token. It does not choose the Cloud Code host, and an identity from an ordinary login has `isDogfood: false`.
+- **The method hangs off the version with a colon**: `.../v1internal:generateContent`. A slash is a nonexistent path and 404s.
+- **The reply is wrapped**: `{ response: { candidates } }`. Read `body.response?.candidates ?? body.candidates`, and keep only parts without `thought: true`. Thinking models put their reasoning first.
+- **Roles are `user` and `model`.** `assistant` is not a role Gemini knows, so the second message of any chat fails.
+- **Bare model ids.** `models/` prefixes 404 on daily. `normalizeAntigravityModelId` maps `gemini-3.1-pro` to `gemini-3.1-pro-low` and any `gemini-3.N-flash` to `gemini-3-flash`; `toCodeAssistRequest` applies it for you.
+- **Send no `x-goog-user-project` for `aicode-consumers`.** Personal tokens 403 on it. `antigravityCliOptions` strips it.
+- **Log the provider's status and body.** Your app will show one sentence for every failure, and the real cause is only in the response.
 
 ### 9. Google deprecated out-of-band (OOB) OAuth
 
