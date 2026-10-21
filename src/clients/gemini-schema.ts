@@ -38,6 +38,12 @@ export function sanitizeGeminiFunctionParameters(
   const src = schema as Record<string, unknown>;
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(src)) {
+    // Gemini has no `const`. A literal is a one-value enum, and dropping it instead leaves the
+    // model with a bare `{ type: "string" }` that accepts (and invents) any value.
+    if (key === "const") {
+      if (!Array.isArray(src.enum)) out.enum = [value];
+      continue;
+    }
     if (!KEYS.has(key)) continue;
     if (
       key === "properties" &&
@@ -54,7 +60,10 @@ export function sanitizeGeminiFunctionParameters(
     } else if (key === "items") {
       out.items = sanitizeGeminiFunctionParameters(value);
     } else if (key === "anyOf" && Array.isArray(value)) {
-      out.anyOf = value.map(sanitizeGeminiFunctionParameters);
+      const branches = value.map(sanitizeGeminiFunctionParameters);
+      const merged = mergeLiteralUnion(branches);
+      if (merged) Object.assign(out, merged);
+      else out.anyOf = branches;
     } else {
       out[key] = value;
     }
@@ -76,4 +85,24 @@ export function sanitizeGeminiFunctionParameters(
   if (!out.type && !out.anyOf && (out.properties || out.required))
     out.type = "object";
   return out;
+}
+
+/**
+ * `Type.Union([Type.Literal("a"), Type.Literal("b")])` arrives as `anyOf` of single-value enums.
+ * Gemini handles that badly (and a union of literals is just an enum), so collapse it:
+ * `{ type, enum: ["a", "b"] }`. Returns null when the branches are anything else.
+ */
+function mergeLiteralUnion(
+  branches: Array<Record<string, unknown>>,
+): Record<string, unknown> | null {
+  if (branches.length === 0) return null;
+  const values: unknown[] = [];
+  let type: unknown;
+  for (const b of branches) {
+    if (!Array.isArray(b.enum) || b.anyOf) return null;
+    if (type !== undefined && b.type !== type) return null;
+    type = b.type;
+    values.push(...b.enum);
+  }
+  return { ...(type !== undefined ? { type } : {}), enum: [...new Set(values)] };
 }
