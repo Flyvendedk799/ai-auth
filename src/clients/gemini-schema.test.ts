@@ -103,4 +103,36 @@ describe("Gemini tool schema conversion", () => {
       "parameters",
     );
   });
+
+  it("keeps literal values: const becomes a one-value enum", () => {
+    expect(clean({ type: "string", const: "wasd" })).toEqual({
+      type: "string",
+      enum: ["wasd"],
+    });
+  });
+
+  it("collapses a union of literals into one enum instead of an unconstrained anyOf", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        controlScheme: {
+          anyOf: [
+            { type: "string", const: "wasd" },
+            { type: "string", const: "arrows" },
+          ],
+        },
+      },
+    };
+    expect((clean(schema) as any).properties.controlScheme).toEqual({
+      type: "string",
+      enum: ["wasd", "arrows"],
+    });
+  });
+
+  it("leaves a non-literal anyOf alone", () => {
+    const out = clean({
+      anyOf: [{ type: "string" }, { type: "number" }],
+    }) as any;
+    expect(out.anyOf).toHaveLength(2);
+  });
 });
