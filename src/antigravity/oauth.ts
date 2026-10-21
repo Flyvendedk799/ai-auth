@@ -44,13 +44,19 @@ function getClientConfig(isDogfood: boolean) {
   return {
     clientId: isDogfood ? "884354919052-36trc1jjb3tguiac32ov6cod268c5blh.apps.googleusercontent.com" : "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
     clientSecret: isDogfood ? DOGFOOD_CLIENT_SECRET : PUBLIC_CLIENT_SECRET,
+    // The Dogfood/G1 client (`isDogfood: true`) does not have `aicode` registered — requesting
+    // it there gets Google 403 `restricted_client` ("Unregistered scope(s): .../auth/aicode") at
+    // the consent screen, before a code is ever issued. Verified against real `agy` 1.2.7: the
+    // prod client (`isDogfood: false`) does register it, and needs it — without it, personal
+    // Google AI never gets a working consumer Cloud Code session. Browser login should always
+    // request `isDogfood: false`; Dogfood was a wrong detour, not an alternative login path.
     scopes: [
       "https://www.googleapis.com/auth/cloud-platform",
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",
-      "https://www.googleapis.com/auth/aicode",
       "https://www.googleapis.com/auth/cclog",
       "https://www.googleapis.com/auth/experimentsandconfigs",
+      ...(isDogfood ? [] : ["https://www.googleapis.com/auth/aicode"]),
       "openid",
     ],
   };

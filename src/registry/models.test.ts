@@ -28,6 +28,15 @@ describe('modelsFor', () => {
 
   it('finds a model by id, and admits when it cannot', () => {
     expect(modelSpec('claude-sonnet-5')?.label).toBe('Sonnet 5');
+    expect(modelSpec('gemini-3.7-flash-low')?.label).toBe('Gemini 3.7 Flash (Low)');
+    expect(modelSpec('gemini-3.7-flash-medium')?.label).toBe('Gemini 3.7 Flash (Medium)');
+    expect(modelSpec('gemini-3.7-flash-high')?.label).toBe('Gemini 3.7 Flash (High)');
+    expect(modelSpec('gemini-3.8-flash-low')?.label).toBe('Gemini 3.8 Flash (Low)');
+    expect(modelSpec('gemini-3.8-flash-medium')?.label).toBe('Gemini 3.8 Flash (Medium)');
+    expect(modelSpec('gemini-3.8-flash-high')?.label).toBe('Gemini 3.8 Flash (High)');
+    expect(modelSpec('gemini-4-argon-low')?.label).toBe('Gemini 4 Argon (Low)');
+    expect(modelSpec('gemini-4-argon-medium')?.label).toBe('Gemini 4 Argon (Medium)');
+    expect(modelSpec('gemini-4-argon-high')?.label).toBe('Gemini 4 Argon (High)');
     expect(modelSpec('something-invented')).toBeNull();
   });
 });

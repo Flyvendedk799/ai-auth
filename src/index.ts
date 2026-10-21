@@ -156,3 +156,5 @@ export {
   type AntigravityClientOptions,
   type OpenAiClientOptions,
 } from './clients/options.js';
+
+export { sanitizeGeminiFunctionParameters } from './clients/gemini-schema.js';
