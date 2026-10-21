@@ -1,3 +1,4 @@
+import { sanitizeGeminiFunctionParameters } from './gemini-schema.js';
 /**
  * How to configure an SDK client for each way of paying.
  *
@@ -138,15 +139,44 @@ export const CLOUD_CODE_PROD_BASE_URL = 'https://cloudcode-pa.googleapis.com/v1i
 export const CLOUD_CODE_DAILY_BASE_URL = 'https://daily-cloudcode-pa.googleapis.com/v1internal';
 
 /**
+ * Gemini 3.8 Flash on Cloud Code is one model, `gemini-3.8-flash-tiered`, whose effort is a request
+ * setting (`generationConfig.thinkingConfig.thinkingLevel`), not part of its id. Verified 2026-10-18
+ * against a personal agy login: `v1internal:fetchAvailableModels` lists only `gemini-3.8-flash-tiered`,
+ * `gemini-3.8-flash-high` (and `-low`/`-medium`) answer 404 NOT_FOUND, and the tiered id answers 200 with
+ * 0 / 59 / 111 thought tokens at thinkingLevel low / medium / high.
+ */
+const GEMINI_38_FLASH_RE = /^gemini-3\.8-flash(?:-(low|medium|high))?$/i;
+export const GEMINI_38_FLASH_TIERED = 'gemini-3.8-flash-tiered';
+
+/**
+ * The thinking level a UI model id asks for on Cloud Code, or undefined when the id is not one of the
+ * tiered models. A Gemini 3.8 Flash id without a tier runs at medium.
+ */
+export function antigravityThinkingLevel(model: string): 'low' | 'medium' | 'high' | undefined {
+  const trimmed = model.trim();
+  const bare = trimmed.startsWith('models/') ? trimmed.slice('models/'.length) : trimmed;
+  const match = GEMINI_38_FLASH_RE.exec(bare);
+  if (!match) return undefined;
+  return (match[1]?.toLowerCase() as 'low' | 'medium' | 'high' | undefined) ?? 'medium';
+}
+
+/**
  * Bare Cloud Code model ids (agy). Prefixing `models/` 404s on daily.
- * Maps UI `gemini-3.1-pro` to the tiered id daily knows, and any `gemini-3.N-flash` to `gemini-3-flash`.
+ * Maps UI ids (`gemini-3.1-pro`, `gemini-3.8-flash-high`, `gemini-4-argon`, ...) to the ids
+ * `daily-cloudcode-pa.googleapis.com` knows. Gemini 3.8 Flash's Low/Medium/High become one id plus a
+ * thinking level (`antigravityThinkingLevel`), which `toCodeAssistRequest` sends.
  */
 export function normalizeAntigravityModelId(model: string): string {
   const trimmed = model.trim();
   const bare = trimmed.startsWith('models/') ? trimmed.slice('models/'.length) : trimmed;
   if (bare === 'gemini-3.1-pro' || bare === 'gemini-3-pro') return 'gemini-3.1-pro-low';
-  // Cloud Code has a single flash id, whatever minor version a UI names (`gemini-3.1-flash`, ...).
-  if (/^gemini-3\.\d+-flash/i.test(bare)) return 'gemini-3-flash';
+  if (bare === 'gemini-4-argon') return 'gemini-4-argon-medium';
+  if (GEMINI_38_FLASH_RE.test(bare) || bare === GEMINI_38_FLASH_TIERED) return GEMINI_38_FLASH_TIERED;
+  if (bare === 'gemini-3.7-flash' || bare === 'gemini-3.7-flash-tiered') return 'gemini-3.7-flash-medium';
+  if (bare === 'gemini-3.6-flash') return 'gemini-3.6-flash-medium';
+  if (/^gemini-3\.(6|7)-flash-(low|medium|high)$/i.test(bare)) return bare.toLowerCase();
+  // Earlier minor flash aliases (`gemini-3.1-flash`, `gemini-3.2-flash-lite`, ...) map to `gemini-3-flash`.
+  if (/^gemini-3\.[0-4]-flash/i.test(bare)) return 'gemini-3-flash';
   return bare;
 }
 
@@ -171,6 +201,8 @@ export function sanitizePersonalCloudCodeProject(
 export function antigravityCliOptions(
   identity: AntigravityOAuthIdentity & {
     projectId?: string | null;
+    /** Kept for caller compatibility; Cloud Code always defaults to the daily host unless `baseUrl` is passed. */
+    isDogfood?: boolean;
   },
   baseUrl?: string,
 ): AntigravityClientOptions {
@@ -200,10 +232,12 @@ export function antigravityCliOptions(
 export interface CodeAssistContentPart {
   text?: string;
   inlineData?: { mimeType: string; data: string };
+  functionCall?: { name: string; args?: Record<string, unknown> };
+  functionResponse?: { name: string; response?: Record<string, unknown> };
 }
 
 export interface CodeAssistContent {
-  role?: 'user' | 'model' | 'system';
+  role?: 'user' | 'model' | 'system' | 'function';
   parts: CodeAssistContentPart[];
 }
 
@@ -214,6 +248,8 @@ export interface CodeAssistGenerateRequest {
   request: {
     contents: CodeAssistContent[];
     systemInstruction?: CodeAssistContent;
+    tools?: any[];
+    generationConfig?: { thinkingConfig?: { thinkingLevel?: 'low' | 'medium' | 'high' } };
   };
 }
 
@@ -223,7 +259,7 @@ export interface CodeAssistGenerateRequest {
 export function toCodeAssistRequest(
   model: string,
   contents: CodeAssistContent[] | string,
-  options: { projectId?: string; systemInstruction?: string; userPromptId?: string } = {},
+  options: { projectId?: string; systemInstruction?: string; userPromptId?: string; tools?: any[] } = {},
 ): CodeAssistGenerateRequest {
   const normalizedContents: CodeAssistContent[] =
     typeof contents === 'string'
@@ -232,6 +268,8 @@ export function toCodeAssistRequest(
 
   // Bare model id — `models/` prefix 404s on daily-cloudcode-pa (verified 2026-09-19).
   const wireModel = normalizeAntigravityModelId(model);
+  // A tiered model's effort travels as a thinking level, read from the id the caller chose.
+  const thinkingLevel = wireModel === GEMINI_38_FLASH_TIERED ? antigravityThinkingLevel(model) : undefined;
   // aicode-consumers may be sent as body project; never rely on header for it.
   const bodyProject =
     options.projectId && options.projectId !== GOOGLE_ENTERPRISE_CLOUD_CODE_PROJECT
@@ -249,6 +287,16 @@ export function toCodeAssistRequest(
       ...(options.systemInstruction
         ? { systemInstruction: { role: 'system', parts: [{ text: options.systemInstruction }] } }
         : {}),
+      ...(options.tools && options.tools.length > 0 ? {
+        tools: [{
+          functionDeclarations: options.tools.map(t => ({
+            name: t.name,
+            description: t.description,
+            ...((t.input_schema || t.parameters) ? { parameters: sanitizeGeminiFunctionParameters(t.input_schema || t.parameters) } : {}),
+          }))
+        }]
+      } : {}),
+      ...(thinkingLevel ? { generationConfig: { thinkingConfig: { thinkingLevel } } } : {}),
     },
   };
 }
