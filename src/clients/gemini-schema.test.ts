@@ -136,3 +136,20 @@ describe("Gemini tool schema conversion", () => {
     expect(out.anyOf).toHaveLength(2);
   });
 });
+
+describe("clean non-string literals", () => {
+  it("never emits a non-string enum value", () => {
+    const out = clean({
+      type: "object",
+      properties: {
+        v: { type: "number", const: 1 },
+        n: { type: "integer", enum: [1, 2] },
+        s: { type: "string", enum: ["a"] },
+      },
+    }) as { properties: Record<string, { enum?: unknown; description?: string }> };
+    expect(out.properties.v?.enum).toBeUndefined();
+    expect(out.properties.v?.description).toContain("1");
+    expect(out.properties.n?.enum).toBeUndefined();
+    expect(out.properties.s?.enum).toEqual(["a"]);
+  });
+});

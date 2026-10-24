@@ -84,6 +84,25 @@ export function sanitizeGeminiFunctionParameters(
   }
   if (!out.type && !out.anyOf && (out.properties || out.required))
     out.type = "object";
+  // Gemini's Schema.enum is repeated *string*: a numeric/boolean literal is rejected with a 400
+  // (`enum[0] (TYPE_STRING), 1`). Drop the constraint, keep the scalar type, and say the allowed
+  // values in the description so the model still sees them.
+  if (Array.isArray(out.enum) && out.enum.some((v) => typeof v !== "string")) {
+    const allowed = out.enum as unknown[];
+    delete out.enum;
+    const note = `Allowed value(s): ${allowed.map((v) => JSON.stringify(v)).join(", ")}.`;
+    out.description =
+      typeof out.description === "string" ? `${out.description} ${note}` : note;
+    if (!out.type) {
+      out.type = allowed.every((v) => typeof v === "boolean")
+        ? "boolean"
+        : allowed.every((v) => typeof v === "number")
+          ? Number.isInteger(allowed[0])
+            ? "integer"
+            : "number"
+          : "string";
+    }
+  }
   return out;
 }
 
