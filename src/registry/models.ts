@@ -39,18 +39,41 @@ export const MODELS: readonly ModelSpec[] = [
     note: 'Fastest and cheapest. The one still answering when a plan refuses the others.',
   },
   {
+    id: 'claude-sonnet-5-5',
+    label: 'Sonnet 5.5',
+    wire: 'anthropic',
+    tier: 'balanced',
+    note: 'The usual choice — strong coding and agent work without Opus prices.',
+  },
+  // The previous generation stays listed: a chat or a bot that picked it is checked against this
+  // catalogue (providersForModel), and dropping it would refuse a choice that still works.
+  {
     id: 'claude-sonnet-5',
     label: 'Sonnet 5',
     wire: 'anthropic',
     tier: 'balanced',
-    note: 'The usual choice — strong output without Opus prices.',
+    note: 'Previous Sonnet, superseded by Sonnet 5.5.',
+  },
+  {
+    id: 'claude-opus-5-5',
+    label: 'Opus 5.5',
+    wire: 'anthropic',
+    tier: 'heavy',
+    note: 'The current Opus — deep reasoning and long agent runs, below Fable prices.',
+  },
+  {
+    id: 'claude-fable-5-1',
+    label: 'Fable 5.1',
+    wire: 'anthropic',
+    tier: 'heavy',
+    note: 'Most capable, strictest allowance, highest rate.',
   },
   {
     id: 'claude-opus-5',
     label: 'Opus 5',
     wire: 'anthropic',
     tier: 'heavy',
-    note: 'Most capable, strictest allowance, highest rate.',
+    note: 'Previous Opus, superseded by Opus 5.5.',
   },
   {
     id: 'gpt-5-mini',

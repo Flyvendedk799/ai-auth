@@ -56,7 +56,7 @@ const anthropic = new Anthropic(
 );
 
 await anthropic.messages.create({
-  model: 'claude-sonnet-5',
+  model: 'claude-sonnet-5-5',
   max_tokens: 4096,
   // Required on a subscription. Harmless on a key. See trap #1.
   system: connected ? withClaudeCodeIdentity(mySystemPrompt) : mySystemPrompt,

@@ -57,6 +57,10 @@ export interface ModelPricing {
 
 /** USD per million tokens. Verify against the provider's pricing page before changing. */
 export const PRICING: Record<string, ModelPricing> = {
+  'claude-fable-5-1': { input: 10.0, output: 50.0 },
+  'claude-fable-5': { input: 10.0, output: 50.0 },
+  'claude-opus-5-5': { input: 4.0, output: 20.0 },
+  'claude-sonnet-5-5': { input: 2.0, output: 10.0 },
   // Sonnet 5 had promotional $2/$10 rates into 2026; budgeting uses the standard rates.
   'claude-sonnet-5': { input: 3.0, output: 15.0 },
   'claude-opus-5': { input: 5.0, output: 25.0 },
