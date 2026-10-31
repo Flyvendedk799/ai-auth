@@ -19,6 +19,31 @@ describe('modelsFor', () => {
     expect(tiers[tiers.length - 1]).toBe('heavy');
   });
 
+  it('offers the current Claude models on the API key and the subscription alike, and keeps the previous ones', () => {
+    for (const provider of ['anthropic', 'claude-code'] as const) {
+      const ids = modelsFor(provider).map((m) => m.id);
+      expect(ids).toEqual([
+        'claude-haiku-4-5-20251001',
+        'claude-sonnet-5-5',
+        'claude-sonnet-5',
+        'claude-opus-5-5',
+        'claude-fable-5-1',
+        'claude-opus-5',
+      ]);
+    }
+    expect(modelSpec('claude-opus-5-5')?.label).toBe('Opus 5.5');
+    expect(modelSpec('claude-fable-5-1')?.label).toBe('Fable 5.1');
+  });
+
+  it('prices every model it lists from the table, below the unknown-model rate', () => {
+    for (const model of MODELS) {
+      expect(isPricingKnown(model.id)).toBe(true);
+      expect(pricingFor(model.id).output).toBeLessThan(UNKNOWN_MODEL_PRICING.output);
+    }
+    expect(pricingKeyFor('claude-sonnet-5-5')).toBe('claude-sonnet-5-5');
+    expect(pricingFor('claude-opus-5-5')).toEqual({ input: 4, output: 20 });
+  });
+
   it('describes every model it lists', () => {
     for (const model of MODELS) {
       expect(model.label.length).toBeGreaterThan(0);
