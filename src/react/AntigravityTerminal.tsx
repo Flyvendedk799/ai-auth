@@ -133,7 +133,7 @@ export function AntigravityTerminal({ onChange }: AntigravityTerminalProps) {
     setStage({ kind: 'starting' });
     print('out', 'Starting sign-in…');
     try {
-      const started = await startAntigravityLogin(true);
+      const started = await startAntigravityLogin(false);
       setStage({ kind: 'awaiting', url: started.url });
       print('out', 'Open this URL and approve the request:');
       print('link', started.url);
@@ -152,7 +152,7 @@ export function AntigravityTerminal({ onChange }: AntigravityTerminalProps) {
         const status = await completeAntigravityLogin(code);
         report(status);
         setStage({ kind: 'idle' });
-        print('ok', `Signed in${status.plan ? ` · ${status.plan} plan` : ''}.`);
+        print('ok', `Signed in as ${status.email ?? 'authorized'}${status.plan ? ` · ${status.plan} plan` : ''}.`);
         print('out', 'Generations from this account now bill to your subscription.');
       } catch (error) {
         const message = (error as Error).message;
@@ -211,7 +211,7 @@ export function AntigravityTerminal({ onChange }: AntigravityTerminalProps) {
         print(
           status.connected ? 'ok' : 'out',
           status.connected
-            ? `Connected${status.plan ? ` · ${status.plan} plan` : ''}${status.expired ? ' · token expired, will refresh on next use' : ''}`
+            ? `Connected as ${status.email ?? 'signed in'}${status.plan ? ` · ${status.plan} plan` : ''}${status.expired ? ' · token expired, will refresh on next use' : ''}`
             : 'Not connected.',
         );
         return;
@@ -242,7 +242,7 @@ export function AntigravityTerminal({ onChange }: AntigravityTerminalProps) {
         <span className="ai-auth-term__dot" aria-hidden="true" />
         <span className="ai-auth-term__dot" aria-hidden="true" />
         <span className="ai-auth-term__title">
-          agy — {connection?.connected ? `signed in${connection.plan ? ` (${connection.plan})` : ''}` : 'not signed in'}
+          agy — {connection?.connected ? `${connection.email ?? 'signed in'}${connection.plan ? ` (${connection.plan})` : ''}` : 'not signed in'}
         </span>
       </div>
 

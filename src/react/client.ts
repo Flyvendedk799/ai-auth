@@ -76,6 +76,7 @@ export interface AntigravityConnection {
   connected: boolean;
   plan: string | null;
   projectId: string | null;
+  email: string | null;
   expiresAt: number | null;
   expired: boolean;
   available: boolean;
@@ -102,7 +103,7 @@ export async function antigravityStatus(): Promise<AntigravityConnection> {
   return (await response.json()) as AntigravityConnection;
 }
 
-export async function startAntigravityLogin(isDogfood = true): Promise<{ url: string; expiresInSeconds: number }> {
+export async function startAntigravityLogin(isDogfood = false): Promise<{ url: string; expiresInSeconds: number }> {
   const response = await callAg('POST', '/login', { isDogfood });
   if (!response.ok) throw new Error(await describe(response));
   return (await response.json()) as { url: string; expiresInSeconds: number };
