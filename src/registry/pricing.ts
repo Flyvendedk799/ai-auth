@@ -57,6 +57,10 @@ export interface ModelPricing {
 
 /** USD per million tokens. Verify against the provider's pricing page before changing. */
 export const PRICING: Record<string, ModelPricing> = {
+  'claude-fable-5-1': { input: 10.0, output: 50.0 },
+  'claude-fable-5': { input: 10.0, output: 50.0 },
+  'claude-opus-5-5': { input: 4.0, output: 20.0 },
+  'claude-sonnet-5-5': { input: 2.0, output: 10.0 },
   // Sonnet 5 had promotional $2/$10 rates into 2026; budgeting uses the standard rates.
   'claude-sonnet-5': { input: 3.0, output: 15.0 },
   'claude-opus-5': { input: 5.0, output: 25.0 },
@@ -73,6 +77,19 @@ export const PRICING: Record<string, ModelPricing> = {
   'gemini-3-flash': { input: 0.15, output: 0.6 },
   'gemini-3-pro': { input: 1.25, output: 5.0 },
   'gemini-3.1-pro': { input: 1.25, output: 5.0 },
+  // Introductory rate through 2026-12-31; standard rate afterward is $1.5 / $7.5.
+  'gemini-3.7-flash': { input: 0.75, output: 3.75 },
+  'gemini-3.7-flash-low': { input: 0.75, output: 3.75 },
+  'gemini-3.7-flash-medium': { input: 0.75, output: 3.75 },
+  'gemini-3.7-flash-high': { input: 0.75, output: 3.75 },
+  'gemini-3.8-flash': { input: 0.75, output: 3.75 },
+  'gemini-3.8-flash-low': { input: 0.75, output: 3.75 },
+  'gemini-3.8-flash-medium': { input: 0.75, output: 3.75 },
+  'gemini-3.8-flash-high': { input: 0.75, output: 3.75 },
+  'gemini-4-argon': { input: 1.25, output: 5.0 },
+  'gemini-4-argon-low': { input: 0.75, output: 3.75 },
+  'gemini-4-argon-medium': { input: 1.25, output: 5.0 },
+  'gemini-4-argon-high': { input: 2.5, output: 10.0 },
 };
 
 /**

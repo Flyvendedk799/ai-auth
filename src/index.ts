@@ -141,6 +141,7 @@ export {
   codexOptions,
   antigravityCliOptions,
   normalizeAntigravityModelId,
+  antigravityThinkingLevel,
   sanitizePersonalCloudCodeProject,
   CLOUD_CODE_DAILY_BASE_URL,
   CLOUD_CODE_PROD_BASE_URL,
@@ -156,3 +157,5 @@ export {
   type AntigravityClientOptions,
   type OpenAiClientOptions,
 } from './clients/options.js';
+
+export { sanitizeGeminiFunctionParameters } from './clients/gemini-schema.js';
